@@ -4,6 +4,7 @@ export default defineConfig({
   entry: {
     'mcp/server': 'src/mcp/server.ts',
     'daemon/server': 'src/daemon/server.ts',
+    'daemon/lifecycle': 'src/daemon/lifecycle.ts',
     'cli/index': 'src/cli/index.ts'
   },
   format: ['esm'],
