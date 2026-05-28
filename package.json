@@ -1,6 +1,6 @@
 {
   "name": "matchi-mcp",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "description": "MCP plugin for AI-driven dataset reconciliation, backed by a local DuckDB daemon.",
   "type": "module",
   "bin": {
@@ -12,7 +12,7 @@
     "bin",
     "dist",
     "skills",
-    "plugin.json",
+    ".claude-plugin",
     "README.md",
     "docs",
     "LICENSE"

@@ -22,3 +22,10 @@ Claude Code plugin marketplace compliance.
 - Rename `mcp_servers` array → `mcpServers` object (camelCase, official schema).
 - Add `.claude-plugin/marketplace.json` so the repo can be added as a marketplace via `/plugin marketplace add barockok/matchi-mcp`.
 - README: replace pseudo-CLI install with the real `/plugin marketplace add` + `/plugin install` flow. List all 7 MCP tools (was 5).
+
+## v0.0.3 — 2026-05-29
+
+Actually apply the v0.0.2 marketplace fixes (the prior commit's manifest content was not updated due to a tooling failure).
+
+- `.claude-plugin/plugin.json` now uses `mcpServers` (camelCase object), version 0.0.3.
+- `package.json` `files` array references `.claude-plugin/` (was stale `plugin.json` path).

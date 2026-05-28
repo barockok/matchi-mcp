@@ -1,13 +1,12 @@
 {
   "name": "matchi",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "description": "Dataset reconciliation tools (DuckDB-backed daemon) for any MCP-compatible agentic harness.",
-  "mcp_servers": [
-    {
-      "name": "matchi",
+  "mcpServers": {
+    "matchi": {
       "command": "matchi-mcp",
       "args": []
     }
-  ],
+  },
   "skills": ["./skills/matchi"]
 }
