@@ -1,0 +1,37 @@
+{
+  "name": "matchi-mcp",
+  "version": "0.0.1",
+  "description": "MCP plugin for AI-driven dataset reconciliation, backed by a local DuckDB daemon.",
+  "type": "module",
+  "bin": {
+    "matchi-mcp": "./bin/matchi-mcp.js",
+    "matchi-daemon": "./bin/matchi-daemon.js",
+    "matchi": "./bin/matchi.js"
+  },
+  "files": ["bin", "dist", "skills", "plugin.json", "README.md", "docs"],
+  "scripts": {
+    "build": "tsup",
+    "dev:daemon": "tsx src/daemon/server.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "tsc --noEmit && vitest run",
+    "lint": "eslint src --ext .ts"
+  },
+  "dependencies": {
+    "@duckdb/node-api": "1.4.4-r.3",
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "fastify": "^4.28.0",
+    "@fastify/sensible": "^5.6.0",
+    "eventsource": "^2.0.2",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.16.0",
+    "tsup": "^8.2.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0",
+    "eslint": "^9.0.0"
+  },
+  "engines": { "node": ">=20" }
+}
