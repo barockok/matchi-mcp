@@ -13,13 +13,24 @@ Continue, custom) can share the same workspace and dataset cache.
 
 ## Install (Claude Code)
 
-```bash
-claude plugin install github:barockok/matchi-mcp
+Inside Claude Code:
+
+```
+/plugin marketplace add barockok/matchi-mcp
+/plugin install matchi@matchi-marketplace
 ```
 
-This registers the `matchi` MCP server and installs the bundled `matchi`
-skill, which teaches the agent the reconciliation workflow (discover sources,
-profile, propose a match key, run, triage exceptions).
+Then install the MCP server binary globally so the plugin's stdio command
+resolves on `$PATH`:
+
+```bash
+npm install -g matchi-mcp
+```
+
+Reload plugins (`/plugin reload` or restart Claude Code). This registers the
+`matchi` MCP server and the bundled `matchi` skill, which teaches the agent
+the reconciliation workflow (discover sources, profile, propose a match key,
+run, triage exceptions).
 
 ## Install (any MCP harness)
 
@@ -48,13 +59,18 @@ manage.
 
 ## What it does
 
+Seven MCP tools:
+
+- `upload_dataset` — load a local CSV or XLSX into the workspace DuckDB.
 - `list_sources` — enumerate datasets registered in the current workspace.
-- `load_sheet` — ingest a CSV/XLSX/Parquet file into DuckDB.
-- `run_sql` — execute DuckDB SQL (batched, row-capped, dangerous keywords
-  blocked).
+- `load_sheet` — ingest a specific sheet from an XLSX file.
+- `run_sql` — execute DuckDB SQL (batched up to 10, row-capped at 20,
+  dangerous keywords blocked).
 - `run_match` — execute a reconciliation: matched rows + derived unmatched
   set, with progress events.
-- `get_exceptions` — paginate through unmatched rows from the last run.
+- `get_exceptions` — paginate through unmatched rows from a given match run.
+- `recall_known_mistakes` — top-10 error patterns the agent previously
+  tripped on in this workspace.
 
 ## How it works
 

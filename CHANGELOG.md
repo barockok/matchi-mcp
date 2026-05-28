@@ -13,3 +13,12 @@ Initial release. Pivots Matchi from a standalone Electron desktop application in
 - `matchi` CLI: `doctor`, `start`, `stop`, `logs`, `gc`.
 - Documentation suite under `docs/` and published to GitHub Pages.
 - Architecture spec at `docs/09-architecture.md`.
+
+## v0.0.2 — 2026-05-29
+
+Claude Code plugin marketplace compliance.
+
+- Move manifest to `.claude-plugin/plugin.json` (canonical location).
+- Rename `mcp_servers` array → `mcpServers` object (camelCase, official schema).
+- Add `.claude-plugin/marketplace.json` so the repo can be added as a marketplace via `/plugin marketplace add barockok/matchi-mcp`.
+- README: replace pseudo-CLI install with the real `/plugin marketplace add` + `/plugin install` flow. List all 7 MCP tools (was 5).
