@@ -1,3 +1,93 @@
 # matchi-mcp
 
-MCP plugin for AI-driven dataset reconciliation, backed by a local DuckDB daemon. Mount in any agentic harness (Claude Code, Cline, Cursor, Continue, custom). See `docs/` once the build completes.
+> Dataset reconciliation, mounted as an MCP server. Bring your own agentic harness.
+
+`matchi-mcp` exposes a set of reconciliation tools (load tabular sources, run
+DuckDB SQL, execute match-and-diff workflows, surface exceptions) over the
+Model Context Protocol. It is designed for finance, ops, and data teams who
+want an LLM agent to chase down "why don't these two ledgers tie?" — without
+giving up control of their data or their harness. The MCP server is a thin
+stdio shim; the real work happens in a local DuckDB-backed daemon that lives
+under `~/.matchi/`, so multiple harnesses (Claude Code, Cline, Cursor,
+Continue, custom) can share the same workspace and dataset cache.
+
+## Install (Claude Code)
+
+```bash
+claude plugin install github:barockok/matchi-mcp
+```
+
+This registers the `matchi` MCP server and installs the bundled `matchi`
+skill, which teaches the agent the reconciliation workflow (discover sources,
+profile, propose a match key, run, triage exceptions).
+
+## Install (any MCP harness)
+
+Install the CLI globally, then point your harness at the stdio command:
+
+```bash
+npm install -g matchi-mcp
+```
+
+Configure your harness to launch `matchi-mcp` as a stdio MCP server. For a
+generic JSON config (Cline, Continue, custom):
+
+```json
+{
+  "mcpServers": {
+    "matchi": {
+      "command": "matchi-mcp",
+      "args": []
+    }
+  }
+}
+```
+
+The shim auto-spawns the daemon on first tool call; no separate service to
+manage.
+
+## What it does
+
+- `list_sources` — enumerate datasets registered in the current workspace.
+- `load_sheet` — ingest a CSV/XLSX/Parquet file into DuckDB.
+- `run_sql` — execute DuckDB SQL (batched, row-capped, dangerous keywords
+  blocked).
+- `run_match` — execute a reconciliation: matched rows + derived unmatched
+  set, with progress events.
+- `get_exceptions` — paginate through unmatched rows from the last run.
+
+## How it works
+
+The MCP entrypoint (`matchi-mcp`) is a stdio shim. On first request it
+ensures a local daemon is running and forwards JSON-RPC over a Unix socket.
+The daemon owns a DuckDB instance per workspace, keyed by
+`sha1(cwd)[:12]`, stored under `~/.matchi/workspaces/<key>/`. The daemon
+self-exits after an idle timeout, so it costs nothing when not in use.
+Workspaces are isolated, so two projects on the same machine never see each
+other's data.
+
+## CLI
+
+- `matchi doctor` — check daemon health, socket, DuckDB engine, workspace dir.
+- `matchi start` — start the daemon explicitly (usually unnecessary; the shim
+  spawns it).
+- `matchi stop` — stop the running daemon.
+- `matchi gc [--older-than 30d]` — garbage-collect stale workspace
+  directories.
+
+## Configuration
+
+| Env var          | Default      | Description                                                |
+|------------------|--------------|------------------------------------------------------------|
+| `MATCHI_HOME`    | `~/.matchi`  | Root of daemon state, workspaces, tokens, logs.            |
+| `MATCHI_IDLE_MS` | `1800000`    | Idle timeout (ms) before the daemon self-exits.            |
+| `MATCHI_LOG`     | `info`       | Log level: `trace`, `debug`, `info`, `warn`, `error`.      |
+
+## Documentation
+
+See `docs/` for architecture, tool specs, troubleshooting, and harness
+integration guides. (Deep dives land alongside the first tagged release.)
+
+## License
+
+MIT — see `LICENSE`.
