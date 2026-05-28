@@ -8,7 +8,14 @@
     "matchi-daemon": "./bin/matchi-daemon.js",
     "matchi": "./bin/matchi.js"
   },
-  "files": ["bin", "dist", "skills", "plugin.json", "README.md", "docs"],
+  "files": [
+    "bin",
+    "dist",
+    "skills",
+    "plugin.json",
+    "README.md",
+    "docs"
+  ],
   "scripts": {
     "build": "tsup",
     "dev:daemon": "tsx src/daemon/server.ts",
@@ -19,19 +26,22 @@
   },
   "dependencies": {
     "@duckdb/node-api": "1.4.4-r.3",
-    "@modelcontextprotocol/sdk": "^1.0.0",
-    "fastify": "^4.28.0",
     "@fastify/sensible": "^5.6.0",
+    "@modelcontextprotocol/sdk": "^1.0.0",
     "eventsource": "^2.0.2",
-    "zod": "^3.23.0"
+    "fastify": "^4.28.0",
+    "zod": "^3.23.0",
+    "zod-to-json-schema": "^3.25.2"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "tsx": "^4.16.0",
+    "eslint": "^9.0.0",
     "tsup": "^8.2.0",
+    "tsx": "^4.16.0",
     "typescript": "^5.5.0",
-    "vitest": "^2.0.0",
-    "eslint": "^9.0.0"
+    "vitest": "^2.0.0"
   },
-  "engines": { "node": ">=20" }
+  "engines": {
+    "node": ">=20"
+  }
 }
