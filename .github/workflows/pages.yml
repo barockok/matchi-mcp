@@ -7,6 +7,7 @@ on:
       - 'docs/**'
       - 'README.md'
       - 'skills/**'
+      - '.github/workflows/pages.yml'
   workflow_dispatch:
 
 permissions:
@@ -31,9 +32,18 @@ jobs:
           mkdir -p _site
           cp -r docs/* _site/
           cp README.md _site/index.md
+          cat > _site/_config.yml <<'YAML'
+          theme: jekyll-theme-cayman
+          title: matchi-mcp
+          description: Dataset reconciliation tools (DuckDB-backed daemon) for any MCP-compatible agentic harness.
+          YAML
       - uses: actions/configure-pages@v5
+      - uses: actions/jekyll-build-pages@v1
+        with:
+          source: _site
+          destination: _build
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: _site
+          path: _build
       - id: deployment
         uses: actions/deploy-pages@v4
