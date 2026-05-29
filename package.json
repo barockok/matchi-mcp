@@ -1,6 +1,6 @@
 {
   "name": "matchi-mcp",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "MCP plugin for AI-driven dataset reconciliation, backed by a local DuckDB daemon.",
   "type": "module",
   "bin": {
@@ -35,10 +35,8 @@
     "agent",
     "skill"
   ],
-  "publishConfig": {
-    "access": "public"
-  },
   "scripts": {
+    "prepare": "tsup",
     "build": "tsup",
     "dev:daemon": "tsx src/daemon/server.ts",
     "test": "vitest run",

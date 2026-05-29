@@ -21,10 +21,15 @@ Inside Claude Code:
 ```
 
 Then install the MCP server binary globally so the plugin's stdio command
-resolves on `$PATH`:
+resolves on `$PATH`. Install directly from the GitHub release tarball or
+from the repo:
 
 ```bash
-npm install -g matchi-mcp
+# Option A — latest tagged release tarball
+npm install -g https://github.com/barockok/matchi-mcp/releases/latest/download/matchi-mcp.tgz
+
+# Option B — straight from the git repo
+npm install -g github:barockok/matchi-mcp
 ```
 
 Reload plugins (`/plugin reload` or restart Claude Code). This registers the
@@ -34,10 +39,11 @@ run, triage exceptions).
 
 ## Install (any MCP harness)
 
-Install the CLI globally, then point your harness at the stdio command:
+Install the CLI globally from GitHub, then point your harness at the stdio
+command:
 
 ```bash
-npm install -g matchi-mcp
+npm install -g github:barockok/matchi-mcp
 ```
 
 Configure your harness to launch `matchi-mcp` as a stdio MCP server. For a

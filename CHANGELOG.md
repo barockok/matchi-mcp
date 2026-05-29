@@ -29,3 +29,11 @@ Actually apply the v0.0.2 marketplace fixes (the prior commit's manifest content
 
 - `.claude-plugin/plugin.json` now uses `mcpServers` (camelCase object), version 0.0.3.
 - `package.json` `files` array references `.claude-plugin/` (was stale `plugin.json` path).
+
+## v0.0.4 — 2026-05-29
+
+Drop npm registry as distribution channel — GitHub release tarball + git-installable only.
+
+- `.github/workflows/release.yml`: remove `npm publish` step. Build tarball with `npm pack` and attach it to the GitHub release instead.
+- README: install via `npm install -g https://.../releases/latest/download/matchi-mcp.tgz` or `npm install -g github:barockok/matchi-mcp`.
+- `package.json`: add `prepare: tsup` so git installs build `dist/` automatically; drop `publishConfig` (npm-registry-specific).

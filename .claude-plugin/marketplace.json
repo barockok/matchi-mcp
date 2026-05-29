@@ -12,7 +12,7 @@
         "repo": "barockok/matchi-mcp"
       },
       "description": "Dataset reconciliation tools (DuckDB-backed daemon) for any MCP-compatible agentic harness.",
-      "version": "0.0.3"
+      "version": "0.0.4"
     }
   ]
 }
