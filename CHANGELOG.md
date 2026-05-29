@@ -37,3 +37,14 @@ Drop npm registry as distribution channel — GitHub release tarball + git-insta
 - `.github/workflows/release.yml`: remove `npm publish` step. Build tarball with `npm pack` and attach it to the GitHub release instead.
 - README: install via `npm install -g https://.../releases/latest/download/matchi-mcp.tgz` or `npm install -g github:barockok/matchi-mcp`.
 - `package.json`: add `prepare: tsup` so git installs build `dist/` automatically; drop `publishConfig` (npm-registry-specific).
+
+## v0.1.0 — 2026-05-29
+
+Rename `matchi-mcp` → `matchi` across the entire surface.
+
+- Package name `matchi-mcp` → `matchi`. Repo renamed `barockok/matchi-mcp` → `barockok/matchi`.
+- Bin: the stdio MCP shim (`matchi-mcp`) and CLI (`matchi`) are now a single bin called `matchi`. No subcommand → MCP stdio server; subcommand (`doctor|start|stop|logs|gc`) → CLI. `matchi-daemon` unchanged.
+- Plugin manifest `command` field is now `matchi`. Marketplace listing repo URL is `barockok/matchi`.
+- Install URLs updated to the new package + repo names.
+
+**Breaking:** harness MCP configs that reference `"command": "matchi-mcp"` must update to `"command": "matchi"`. Reinstall: `npm install -g matchi` (or `npm install -g github:barockok/matchi`).

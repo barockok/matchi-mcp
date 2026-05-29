@@ -14,7 +14,7 @@ They should agree, but you suspect 30 lines won't reconcile. You want a definiti
 ## Step 1: Install (if you haven't)
 
 ```bash
-claude plugin install github:barockok/matchi-mcp
+claude plugin install github:barockok/matchi
 ```
 
 See [01-install.md](./01-install.md) for other harnesses.

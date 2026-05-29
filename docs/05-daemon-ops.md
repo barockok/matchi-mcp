@@ -4,7 +4,7 @@ Day-to-day operation of the `matchi-daemon`. For most users there is nothing to 
 
 ## Lifecycle in one paragraph
 
-The shim (`matchi-mcp`) spawns the daemon (`matchi-daemon`) on the first MCP tool call from your harness. The daemon picks a random free loopback port, writes `~/.matchi/daemon.json` with `{pid, port, startedAt, version}`, and serves HTTP on `127.0.0.1:<port>`. After 30 minutes (configurable) without any request, the daemon gracefully shuts down — close DuckDB, clear `daemon.json`, exit. The next MCP tool call respawns it. DuckDB files on disk are untouched by shutdown.
+The shim (`matchi`) spawns the daemon (`matchi-daemon`) on the first MCP tool call from your harness. The daemon picks a random free loopback port, writes `~/.matchi/daemon.json` with `{pid, port, startedAt, version}`, and serves HTTP on `127.0.0.1:<port>`. After 30 minutes (configurable) without any request, the daemon gracefully shuts down — close DuckDB, clear `daemon.json`, exit. The next MCP tool call respawns it. DuckDB files on disk are untouched by shutdown.
 
 ## State files
 
@@ -142,7 +142,7 @@ The daemon and the shim should always be the same version. Upgrade steps:
 
 ```bash
 matchi stop                              # close DuckDB cleanly
-npm install -g matchi-mcp@latest         # or: claude plugin update matchi
+npm install -g matchi@latest         # or: claude plugin update matchi
 ```
 
 Next MCP tool call from your harness will respawn the new daemon. DuckDB files and the per-workspace `.token` survive the upgrade.

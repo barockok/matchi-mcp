@@ -13,12 +13,12 @@ No Python, no Docker, no system-level package required.
 ## Path 1: Claude Code plugin (recommended)
 
 ```bash
-claude plugin install github:barockok/matchi-mcp
+claude plugin install github:barockok/matchi
 ```
 
 This installs the plugin into Claude Code, which:
 
-1. Registers the `matchi` MCP server (command: `matchi-mcp`) in your Claude Code config.
+1. Registers the `matchi` MCP server (command: `matchi`) in your Claude Code config.
 2. Installs the bundled `matchi` skill so the agent knows the reconciliation workflow.
 
 Restart your Claude Code session if it was running. Then ask the agent to reconcile two datasets — the agent will activate the skill on its own.
@@ -26,14 +26,13 @@ Restart your Claude Code session if it was running. Then ask the agent to reconc
 ## Path 2: npm global install
 
 ```bash
-npm install -g matchi-mcp
+npm install -g matchi
 ```
 
-This installs three binaries on your `PATH`:
+This installs two binaries on your `PATH`:
 
-- `matchi-mcp` — the MCP stdio shim. Point your harness at this.
+- `matchi` — unified bin. With no args, runs the MCP stdio server (point your harness at this). With a subcommand (`doctor`, `start`, `stop`, `logs`, `gc`), runs the CLI.
 - `matchi-daemon` — the HTTP daemon. The shim auto-spawns it; you rarely run it directly.
-- `matchi` — the CLI (`doctor`, `start`, `stop`, `logs`, `gc`).
 
 Then configure your harness. For a generic JSON config (Cline, Continue, custom):
 
@@ -41,7 +40,7 @@ Then configure your harness. For a generic JSON config (Cline, Continue, custom)
 {
   "mcpServers": {
     "matchi": {
-      "command": "matchi-mcp",
+      "command": "matchi",
       "args": []
     }
   }
@@ -53,14 +52,14 @@ See [07-harness-integration.md](./07-harness-integration.md) for harness-specifi
 ## Path 3: From source
 
 ```bash
-git clone https://github.com/barockok/matchi-mcp
-cd matchi-mcp
+git clone https://github.com/barockok/matchi
+cd matchi
 npm install
 npm run build
 npm link
 ```
 
-`npm link` exposes the same three binaries from your working tree. Useful if you want to hack on the daemon or the shim. Re-run `npm run build` after changing TypeScript sources — the bins import from `dist/`.
+`npm link` exposes the same two binaries from your working tree. Useful if you want to hack on the daemon or the shim. Re-run `npm run build` after changing TypeScript sources — the bins import from `dist/`.
 
 ## Verify the install
 
@@ -104,7 +103,7 @@ If `matchi doctor` reports a daemon but says `alive: no (stale pid file)` or `he
 claude plugin update matchi
 
 # npm
-matchi stop && npm install -g matchi-mcp@latest
+matchi stop && npm install -g matchi@latest
 
 # source
 git pull && npm install && npm run build

@@ -32,7 +32,7 @@ A bare SQL agent is fine for one-shot exploration. Matchi is for repeatable reco
 
 ```
 ┌───────────────────────┐  stdio JSON-RPC  ┌────────────────────┐  HTTP/loopback  ┌──────────────────────┐
-│ Harness (Claude Code, │ ←──────────────→ │ matchi-mcp (shim)  │ ←─────────────→ │ matchi-daemon        │
+│ Harness (Claude Code, │ ←──────────────→ │ matchi (shim)      │ ←─────────────→ │ matchi-daemon        │
 │ Cline, Cursor, …)     │                  │ stateless Node bin │                 │ Fastify + DuckDB     │
 └───────────────────────┘                  └────────────────────┘                 │ + recon/recipe/      │
         ▲                                            │                            │   error-memory stores│
@@ -50,7 +50,7 @@ A bare SQL agent is fine for one-shot exploration. Matchi is for repeatable reco
 Three units make up the system:
 
 1. **Harness** — your editor or CLI that hosts an LLM agent and speaks MCP. The harness owns the model, the conversation, and the user-facing UX.
-2. **`matchi-mcp` shim** — a thin Node binary that speaks MCP over stdio to the harness and HTTP over loopback to the daemon. It auto-spawns the daemon on first call and reads the per-workspace bearer token from disk.
+2. **`matchi` shim** — a thin Node binary that speaks MCP over stdio to the harness and HTTP over loopback to the daemon. It auto-spawns the daemon on first call and reads the per-workspace bearer token from disk.
 3. **`matchi-daemon`** — a Fastify HTTP server on `127.0.0.1:<random-port>` that owns the DuckDB engines, the workspace registry, the stores (recon, recipe, error-memory), and the tool implementations. Exits cleanly after an idle timeout (default 30 minutes).
 
 The skill is a Markdown file bundled in the plugin that teaches the harness *how* to use the tools. See [04-skill-workflow.md](./04-skill-workflow.md).

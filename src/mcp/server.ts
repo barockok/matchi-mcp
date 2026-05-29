@@ -46,6 +46,6 @@ export async function main(): Promise<void> {
 // Auto-run when invoked as the entry point. The bundled bin imports this
 // module from dist, which triggers this top-level call.
 main().catch((err) => {
-  console.error('matchi-mcp fatal:', err)
+  console.error('matchi fatal:', err)
   process.exit(1)
 })

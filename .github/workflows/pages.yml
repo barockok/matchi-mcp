@@ -34,7 +34,7 @@ jobs:
           cp README.md _site/index.md
           cat > _site/_config.yml <<'YAML'
           theme: jekyll-theme-cayman
-          title: matchi-mcp
+          title: matchi
           description: Dataset reconciliation tools (DuckDB-backed daemon) for any MCP-compatible agentic harness.
           YAML
       - uses: actions/configure-pages@v5

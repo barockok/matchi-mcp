@@ -8,7 +8,7 @@
 
 Convert Matchi from a standalone Electron desktop application into a Claude Code plugin (MCP server + skill) backed by a long-running local daemon. The reconciliation mission is unchanged: agents explore tabular datasets, discover matching patterns, run reconciliation, and surface exceptions. The surface changes — instead of a GUI, Matchi mounts into any MCP-compatible agentic harness (Claude Code, Cline, Cursor, Continue, custom).
 
-The Electron app (`kalla-v2`) remains untouched in its current repo. This design lives in a **new repo** (working name: `matchi-mcp`).
+The Electron app (`kalla-v2`) remains untouched in its current repo. This design lives in a **new repo** (`matchi`).
 
 ## 2. Non-goals
 
@@ -22,7 +22,7 @@ The Electron app (`kalla-v2`) remains untouched in its current repo. This design
 
 ```
 ┌───────────────────────┐  stdio JSON-RPC  ┌────────────────────┐  HTTP/loopback  ┌──────────────────────┐
-│ Harness (Claude Code, │ ←──────────────→ │ matchi-mcp (shim)  │ ←─────────────→ │ matchi-daemon        │
+│ Harness (Claude Code, │ ←──────────────→ │ matchi (shim)      │ ←─────────────→ │ matchi-daemon        │
 │ Cline, Cursor, …)     │                  │ stateless Node bin │                 │ Fastify + DuckDB     │
 └───────────────────────┘                  └────────────────────┘                 │ + recon/recipe/      │
         ▲                                            │                            │   error-memory stores│
@@ -38,7 +38,7 @@ The Electron app (`kalla-v2`) remains untouched in its current repo. This design
 
 ### Three units
 
-- **`matchi-mcp` (shim).** Node bin that speaks MCP stdio. Each tool call is a stateless HTTP request to the daemon. Auto-spawns the daemon if `~/.matchi/daemon.json` is missing or its PID is dead. Reads workspace bearer token from `~/.matchi/workspaces/<hash>/.token` after the daemon writes it on first contact for a new cwd.
+- **`matchi` (shim).** Node bin that speaks MCP stdio. Each tool call is a stateless HTTP request to the daemon. Auto-spawns the daemon if `~/.matchi/daemon.json` is missing or its PID is dead. Reads workspace bearer token from `~/.matchi/workspaces/<hash>/.token` after the daemon writes it on first contact for a new cwd.
 - **`matchi-daemon`.** Long-running Node process. Fastify HTTP listener on `127.0.0.1:<random-port>`. Owns the DuckDB engine, recon store, recipe store, and error-memory store. Per-workspace isolation: workspace directory is derived from the harness's `cwd` (sha1, first 12 chars) and rooted under `~/.matchi/workspaces/`. Idle-timeout (default 30 min, configurable) releases RAM by exiting cleanly; next MCP call respawns it.
 - **`matchi` skill.** Markdown skill bundled in the plugin. Replaces the Electron app's system prompt. Teaches the harness the reconciliation workflow (discovery → SQL probe → match candidate → run_match → exceptions → recipe) and DuckDB recon SQL idioms. Activated when the agent is asked to reconcile, match, or analyze tabular data.
 
@@ -55,13 +55,12 @@ Stdio MCP works in every current harness. Streamable-HTTP MCP support is uneven.
 ## 4. Plugin package layout
 
 ```
-matchi-mcp/
-├── package.json            # bins: matchi-mcp, matchi-daemon, matchi
+matchi/
+├── package.json            # bins: matchi, matchi-daemon
 ├── plugin.json             # Claude Code plugin manifest (mcp + skill refs)
 ├── bin/
-│   ├── matchi-mcp.js       # MCP stdio entry
-│   ├── matchi-daemon.js    # daemon entry
-│   └── matchi.js           # CLI: doctor, start, stop, logs, gc
+│   ├── matchi.js           # unified bin: MCP stdio (no args) / CLI (doctor, start, stop, logs, gc)
+│   └── matchi-daemon.js    # daemon entry
 ├── src/
 │   ├── mcp/
 │   │   ├── server.ts       # MCP tool registrations

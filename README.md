@@ -1,8 +1,8 @@
-# matchi-mcp
+# matchi
 
 > Dataset reconciliation, mounted as an MCP server. Bring your own agentic harness.
 
-`matchi-mcp` exposes a set of reconciliation tools (load tabular sources, run
+`matchi` exposes a set of reconciliation tools (load tabular sources, run
 DuckDB SQL, execute match-and-diff workflows, surface exceptions) over the
 Model Context Protocol. It is designed for finance, ops, and data teams who
 want an LLM agent to chase down "why don't these two ledgers tie?" — without
@@ -16,7 +16,7 @@ Continue, custom) can share the same workspace and dataset cache.
 Inside Claude Code:
 
 ```
-/plugin marketplace add barockok/matchi-mcp
+/plugin marketplace add barockok/matchi
 /plugin install matchi@matchi-marketplace
 ```
 
@@ -26,10 +26,10 @@ from the repo:
 
 ```bash
 # Option A — latest tagged release tarball
-npm install -g https://github.com/barockok/matchi-mcp/releases/latest/download/matchi-mcp.tgz
+npm install -g https://github.com/barockok/matchi/releases/latest/download/matchi.tgz
 
 # Option B — straight from the git repo
-npm install -g github:barockok/matchi-mcp
+npm install -g github:barockok/matchi
 ```
 
 Reload plugins (`/plugin reload` or restart Claude Code). This registers the
@@ -43,17 +43,17 @@ Install the CLI globally from GitHub, then point your harness at the stdio
 command:
 
 ```bash
-npm install -g github:barockok/matchi-mcp
+npm install -g github:barockok/matchi
 ```
 
-Configure your harness to launch `matchi-mcp` as a stdio MCP server. For a
+Configure your harness to launch `matchi` as a stdio MCP server. For a
 generic JSON config (Cline, Continue, custom):
 
 ```json
 {
   "mcpServers": {
     "matchi": {
-      "command": "matchi-mcp",
+      "command": "matchi",
       "args": []
     }
   }
@@ -80,7 +80,7 @@ Seven MCP tools:
 
 ## How it works
 
-The MCP entrypoint (`matchi-mcp`) is a stdio shim. On first request it
+The MCP entrypoint (`matchi`) is a stdio shim. On first request it
 ensures a local daemon is running and forwards JSON-RPC over a Unix socket.
 The daemon owns a DuckDB instance per workspace, keyed by
 `sha1(cwd)[:12]`, stored under `~/.matchi/workspaces/<key>/`. The daemon

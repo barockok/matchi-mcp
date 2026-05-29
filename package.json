@@ -1,12 +1,11 @@
 {
-  "name": "matchi-mcp",
-  "version": "0.0.4",
-  "description": "MCP plugin for AI-driven dataset reconciliation, backed by a local DuckDB daemon.",
+  "name": "matchi",
+  "version": "0.1.0",
+  "description": "AI-driven dataset reconciliation, mountable in any MCP-compatible agentic harness, backed by a local DuckDB daemon.",
   "type": "module",
   "bin": {
-    "matchi-mcp": "bin/matchi-mcp.js",
-    "matchi-daemon": "bin/matchi-daemon.js",
-    "matchi": "bin/matchi.js"
+    "matchi": "bin/matchi.js",
+    "matchi-daemon": "bin/matchi-daemon.js"
   },
   "files": [
     "bin",
@@ -20,11 +19,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/barockok/matchi-mcp.git"
+    "url": "git+https://github.com/barockok/matchi.git"
   },
-  "homepage": "https://github.com/barockok/matchi-mcp#readme",
+  "homepage": "https://github.com/barockok/matchi#readme",
   "bugs": {
-    "url": "https://github.com/barockok/matchi-mcp/issues"
+    "url": "https://github.com/barockok/matchi/issues"
   },
   "keywords": [
     "mcp",

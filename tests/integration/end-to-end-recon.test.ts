@@ -6,7 +6,7 @@ import { setTimeout as sleep } from 'node:timers/promises'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 
-const SHIM = resolve(__dirname, '..', '..', 'bin', 'matchi-mcp.js')
+const SHIM = resolve(__dirname, '..', '..', 'bin', 'matchi.js')
 const BANK = resolve(__dirname, '..', 'fixtures', 'bank.csv')
 const GL = resolve(__dirname, '..', 'fixtures', 'gl.csv')
 

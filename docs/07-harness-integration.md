@@ -2,14 +2,14 @@
 
 Matchi mounts as an stdio MCP server. Any harness that speaks MCP can use it. This page collects the config snippets for the major harnesses.
 
-The MCP command is always `matchi-mcp` with no args. The shim handles workspace identification (hashed from `cwd`), daemon autospawn, and bearer-token handshake.
+The MCP command is always `matchi` with no args. The shim handles workspace identification (hashed from `cwd`), daemon autospawn, and bearer-token handshake.
 
 ## Claude Code
 
 The plugin install handles this for you:
 
 ```bash
-claude plugin install github:barockok/matchi-mcp
+claude plugin install github:barockok/matchi
 ```
 
 This registers the MCP server and the skill. If you want to configure it manually instead (npm-global install path), edit your Claude Code MCP config:
@@ -18,14 +18,14 @@ This registers the MCP server and the skill. If you want to configure it manuall
 {
   "mcpServers": {
     "matchi": {
-      "command": "matchi-mcp",
+      "command": "matchi",
       "args": []
     }
   }
 }
 ```
 
-To get the skill without the plugin install, copy `skills/matchi/` from the matchi-mcp source tree into your project's `.claude/skills/` directory (or your global skills directory).
+To get the skill without the plugin install, copy `skills/matchi/` from the matchi source tree into your project's `.claude/skills/` directory (or your global skills directory).
 
 ## Cline (VS Code extension)
 
@@ -35,7 +35,7 @@ Cline supports MCP servers via its settings UI or `cline_mcp_settings.json`. Add
 {
   "mcpServers": {
     "matchi": {
-      "command": "matchi-mcp",
+      "command": "matchi",
       "args": [],
       "disabled": false,
       "autoApprove": []
@@ -54,7 +54,7 @@ Cursor's MCP config (Settings → Cursor Settings → MCP):
 {
   "mcpServers": {
     "matchi": {
-      "command": "matchi-mcp",
+      "command": "matchi",
       "args": []
     }
   }
@@ -74,7 +74,7 @@ Continue's `config.json`:
       {
         "transport": {
           "type": "stdio",
-          "command": "matchi-mcp",
+          "command": "matchi",
           "args": []
         }
       }
@@ -89,8 +89,8 @@ Continue's `config.json`:
 
 Any harness that can launch a child process and speak MCP over stdio can mount Matchi. The minimum requirement is:
 
-- Spawn `matchi-mcp` as a child process with no special args.
-- Inherit `PATH` (so the spawn can find `matchi-mcp`) and `HOME` (so the shim can resolve `~/.matchi/`).
+- Spawn `matchi` as a child process with no special args.
+- Inherit `PATH` (so the spawn can find `matchi`) and `HOME` (so the shim can resolve `~/.matchi/`).
 - Read `stdout`, write `stdin`, with JSON-RPC framing per the MCP spec.
 
 The shim implements the standard MCP server interface from `@modelcontextprotocol/sdk`. There is nothing Matchi-specific in the wire protocol — `tools/list` and `tools/call` work as expected.
@@ -121,7 +121,7 @@ Most harnesses let you set environment variables per-server:
 {
   "mcpServers": {
     "matchi": {
-      "command": "matchi-mcp",
+      "command": "matchi",
       "args": [],
       "env": {
         "MATCHI_IDLE_MS": "600000",

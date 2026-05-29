@@ -124,13 +124,13 @@ Two possibilities:
 
 If the agent is ignoring patterns it *does* receive from `recall_known_mistakes`, that's an agent / prompt-following issue, not a Matchi bug. The skill prescribes "do not repeat them this session" but ultimately the model decides.
 
-## The harness can't find `matchi-mcp`
+## The harness can't find `matchi`
 
-`which matchi-mcp` should print a path. If it doesn't:
+`which matchi` should print a path. If it doesn't:
 
 - npm-global install: confirm `npm bin -g` is on your shell's `PATH`.
 - From source: confirm `npm link` succeeded and the bins symlinked into your global prefix.
-- Plugin: Claude Code calls `matchi-mcp` from a vendored location managed by the plugin loader, not your global `PATH`. If `claude plugin list` shows matchi installed, the binary is there.
+- Plugin: Claude Code calls `matchi` from a vendored location managed by the plugin loader, not your global `PATH`. If `claude plugin list` shows matchi installed, the binary is there.
 
 ## Log file is empty
 
@@ -139,7 +139,7 @@ See [05-daemon-ops.md → Logs](./05-daemon-ops.md#logs). The daemon doesn't cur
 For interactive debugging, run the daemon in the foreground from a source checkout:
 
 ```bash
-cd matchi-mcp
+cd matchi
 npm run dev:daemon
 ```
 

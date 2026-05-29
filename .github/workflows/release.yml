@@ -29,4 +29,4 @@ jobs:
           gh release create "${GITHUB_REF_NAME}" \
             --title "${GITHUB_REF_NAME}" \
             --notes-file CHANGELOG.md \
-            matchi-mcp-*.tgz
+            matchi-*.tgz

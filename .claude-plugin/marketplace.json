@@ -1,18 +1,12 @@
 {
   "name": "matchi-marketplace",
-  "owner": {
-    "name": "barockok",
-    "url": "https://github.com/barockok"
-  },
+  "owner": { "name": "barockok", "url": "https://github.com/barockok" },
   "plugins": [
     {
       "name": "matchi",
-      "source": {
-        "source": "github",
-        "repo": "barockok/matchi-mcp"
-      },
-      "description": "Dataset reconciliation tools (DuckDB-backed daemon) for any MCP-compatible agentic harness.",
-      "version": "0.0.4"
+      "source": { "source": "github", "repo": "barockok/matchi" },
+      "description": "AI-driven dataset reconciliation, mountable in any MCP-compatible agentic harness.",
+      "version": "0.1.0"
     }
   ]
 }

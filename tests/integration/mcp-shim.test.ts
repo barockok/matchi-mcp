@@ -6,7 +6,7 @@ import { setTimeout as sleep } from 'node:timers/promises'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 
-const SHIM_BIN = resolve(__dirname, '..', '..', 'bin', 'matchi-mcp.js')
+const SHIM_BIN = resolve(__dirname, '..', '..', 'bin', 'matchi.js')
 
 const EXPECTED_TOOLS = [
   'upload_dataset',
@@ -18,13 +18,13 @@ const EXPECTED_TOOLS = [
   'recall_known_mistakes'
 ] as const
 
-describe('matchi-mcp stdio shim', () => {
+describe('matchi stdio shim', () => {
   let home: string
   let client: Client
   let transport: StdioClientTransport
 
   beforeAll(async () => {
-    home = mkdtempSync(join(tmpdir(), 'matchi-mcp-shim-it-'))
+    home = mkdtempSync(join(tmpdir(), 'matchi-shim-it-'))
     transport = new StdioClientTransport({
       command: process.execPath,
       args: [SHIM_BIN],
