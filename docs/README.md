@@ -20,7 +20,7 @@ Matchi is a dataset reconciliation toolkit that mounts into any MCP-capable agen
 
 ## At a glance
 
-- One paragraph: matchi exposes seven MCP tools (`upload_dataset`, `list_sources`, `load_sheet`, `run_sql`, `run_match`, `get_exceptions`, `recall_known_mistakes`) backed by a local DuckDB daemon that auto-spawns under `~/.matchi/` and persists per-cwd workspace state across sessions.
+- One paragraph: matchi exposes eight MCP tools (`upload_dataset`, `list_sources`, `run_sql`, `run_match`, `recall_known_mistakes`, `save_recipe`, `list_recipes`, `apply_recipe`) backed by a local DuckDB daemon that auto-spawns under `~/.matchi/` and persists per-cwd workspace state across sessions.
 - Need to install? Start at [01-install.md](./01-install.md).
 - Want to try it? Start at [02-quickstart.md](./02-quickstart.md).
 - Want to contribute? Start at [09-architecture.md](./09-architecture.md), then the source tree.

@@ -5,15 +5,12 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
 import { WorkspaceRegistry } from './workspace'
-import { ProgressBus } from './progress'
 import { ReconStore } from './stores/recon-store'
 import { RecipeStore } from './stores/recipe-store'
 import { ErrorMemoryStore } from './stores/error-memory-store'
 import { makeAuthHook } from './auth'
 import { healthRoutes } from './routes/health'
 import { toolsRoutes } from './routes/tools'
-import { streamRoutes } from './routes/stream'
-import { stateRoutes } from './routes/state'
 
 export interface BuildOptions {
   idleTimeoutMs: number
@@ -22,7 +19,6 @@ export interface BuildOptions {
 
 export interface MatchiServer extends FastifyInstance {
   registry: WorkspaceRegistry
-  bus: ProgressBus
   matchiVersion: string
   startedAt: number
   storesFor(hash: string): Promise<{
@@ -38,7 +34,6 @@ export async function buildServer(opts: BuildOptions): Promise<MatchiServer> {
   await fastify.register(sensible)
 
   const registry = new WorkspaceRegistry({ idleTimeoutMs: opts.idleTimeoutMs })
-  const bus = new ProgressBus()
 
   let version = '0.0.0'
   try {
@@ -48,7 +43,6 @@ export async function buildServer(opts: BuildOptions): Promise<MatchiServer> {
   } catch { /* keep default */ }
 
   fastify.registry = registry
-  fastify.bus = bus
   fastify.matchiVersion = version
   fastify.startedAt = Date.now()
 
@@ -69,8 +63,6 @@ export async function buildServer(opts: BuildOptions): Promise<MatchiServer> {
 
   await fastify.register(healthRoutes)
   await fastify.register(toolsRoutes, { prefix: '/v1' })
-  await fastify.register(streamRoutes, { prefix: '/v1' })
-  await fastify.register(stateRoutes, { prefix: '/v1' })
 
   fastify.addHook('onClose', async () => {
     await registry.closeAll()

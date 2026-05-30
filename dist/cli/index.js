@@ -14,9 +14,6 @@ function matchiHome() {
 function daemonInfoPath() {
   return join(matchiHome(), "daemon.json");
 }
-function daemonLogPath() {
-  return join(matchiHome(), "daemon.log");
-}
 
 // src/mcp/http-client.ts
 function readDaemonInfoFromFs() {
@@ -188,54 +185,8 @@ async function stop() {
   return 1;
 }
 
-// src/cli/logs.ts
-import { existsSync as existsSync6, readFileSync as readFileSync3, watchFile, unwatchFile, statSync as statSync2, openSync, readSync, closeSync } from "fs";
-function tail(path, n) {
-  const content = readFileSync3(path, "utf8");
-  const lines = content.split("\n");
-  if (lines.length > 0 && lines[lines.length - 1] === "") lines.pop();
-  return lines.slice(-n);
-}
-async function logs(args) {
-  const follow = args.includes("--follow") || args.includes("-f");
-  const path = daemonLogPath();
-  if (!existsSync6(path)) {
-    console.log("logging disabled \u2014 set MATCHI_LOG=1 to enable");
-    return 0;
-  }
-  for (const line of tail(path, 100)) {
-    console.log(line);
-  }
-  if (!follow) return 0;
-  let lastSize = statSync2(path).size;
-  return new Promise((resolve2) => {
-    watchFile(path, { interval: 500 }, (curr) => {
-      if (curr.size < lastSize) {
-        lastSize = 0;
-      }
-      if (curr.size > lastSize) {
-        const fd = openSync(path, "r");
-        const buf = Buffer.alloc(curr.size - lastSize);
-        try {
-          readSync(fd, buf, 0, buf.length, lastSize);
-          process.stdout.write(buf);
-        } finally {
-          closeSync(fd);
-        }
-        lastSize = curr.size;
-      }
-    });
-    const cleanup = () => {
-      unwatchFile(path);
-      resolve2(0);
-    };
-    process.on("SIGINT", cleanup);
-    process.on("SIGTERM", cleanup);
-  });
-}
-
 // src/cli/gc.ts
-import { readdirSync as readdirSync2, statSync as statSync3, existsSync as existsSync7, rmSync } from "fs";
+import { readdirSync as readdirSync2, statSync as statSync2, existsSync as existsSync6, rmSync } from "fs";
 import { join as join3 } from "path";
 var UNIT_MS = {
   d: 864e5,
@@ -269,7 +220,7 @@ async function gc(args) {
     }
   }
   const wsRoot = join3(matchiHome(), "workspaces");
-  if (!existsSync7(wsRoot)) {
+  if (!existsSync6(wsRoot)) {
     console.log("no workspaces");
     return 0;
   }
@@ -279,18 +230,18 @@ async function gc(args) {
     const dir = join3(wsRoot, e);
     let isDir = false;
     try {
-      isDir = statSync3(dir).isDirectory();
+      isDir = statSync2(dir).isDirectory();
     } catch {
       continue;
     }
     if (!isDir) continue;
     const data = join3(dir, "data.duckdb");
     let mtime = 0;
-    if (existsSync7(data)) {
-      mtime = statSync3(data).mtimeMs;
+    if (existsSync6(data)) {
+      mtime = statSync2(data).mtimeMs;
     } else {
       try {
-        mtime = statSync3(dir).mtimeMs;
+        mtime = statSync2(dir).mtimeMs;
       } catch {
         continue;
       }
@@ -317,7 +268,6 @@ Commands:
   doctor              Show daemon status, workspaces, and health.
   start               Start the matchi-daemon (no-op if already running).
   stop                Gracefully stop the daemon.
-  logs [-f|--follow]  Print recent daemon logs.
   gc [--older-than D] Remove workspaces older than D (default 30d). Units: d|w|m.
   help                Show this message.
 `);
@@ -331,8 +281,6 @@ async function main() {
       return await start();
     case "stop":
       return await stop();
-    case "logs":
-      return await logs(rest);
     case "gc":
       return await gc(rest);
     case void 0:

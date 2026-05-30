@@ -3,7 +3,6 @@ import type { Workspace } from '../workspace'
 import type { ReconStore } from '../stores/recon-store'
 import type { RecipeStore } from '../stores/recipe-store'
 import type { ErrorMemoryStore } from '../stores/error-memory-store'
-import type { ProgressBus } from '../progress'
 import type { ToolResponse } from '../../shared/protocol'
 
 export interface ToolContext {
@@ -11,8 +10,6 @@ export interface ToolContext {
   recon: ReconStore
   recipe: RecipeStore
   errorMemory: ErrorMemoryStore
-  bus: ProgressBus
-  jobId?: string
 }
 
 export interface Tool<Args = any, Data = any> {

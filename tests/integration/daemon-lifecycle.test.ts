@@ -78,12 +78,12 @@ describe('daemon HTTP', () => {
     expect(r.statusCode).toBe(400)
   })
 
-  it('GET /v1/workspaces/:hash/state returns sources and runs', async () => {
+  it('GET /v1/workspaces/:hash/touch materializes the token', async () => {
     const hash = 'f00ba2000000'
     const stores = await server.storesFor(hash)
     const r = await server.inject({
       method: 'GET',
-      url: `/v1/workspaces/${hash}/state`,
+      url: `/v1/workspaces/${hash}/touch`,
       headers: { authorization: `Bearer ${stores.ws.token}` }
     })
     expect(r.statusCode).toBe(200)

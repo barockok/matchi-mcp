@@ -50,7 +50,7 @@ export async function ensureToken(port: number, hash: string): Promise<void> {
   // hash-scoped route is enough to materialize the file. We expect a 401.
   if (existsSync(workspaceTokenPath(hash))) return
   try {
-    await fetch(`http://127.0.0.1:${port}/v1/workspaces/${hash}/state`, { method: 'GET' })
+    await fetch(`http://127.0.0.1:${port}/v1/workspaces/${hash}/touch`, { method: 'GET' })
   } catch {
     /* the probe is expected to 401; even network errors shouldn't block */
   }

@@ -1,19 +1,18 @@
-import { randomUUID } from 'crypto'
 import type { Engine } from '../db/engine'
 
+export interface RecipeSource {
+  alias: string
+  table: string
+}
+
 export interface Recipe {
-  id: string
   name: string
-  matched_sql: string
-  dataset_a_pattern: string
-  dataset_b_pattern: string
-  match_rate: number | null
-  matched_count: number | null
-  total_count: number | null
-  status: 'active' | 'archived'
+  description: string | null
+  match_sql: string
+  sources: RecipeSource[]
   created_at: string
-  updated_at: string
   last_run_at: string | null
+  last_match_rate: number | null
   run_count: number
 }
 
@@ -26,92 +25,95 @@ export class RecipeStore {
 
   async init(): Promise<void> {
     if (this.initialized) return
+    // Workspaces are local + ephemeral; recreating from scratch is fine for v0.2.0
     await this.engine.execute(`
       CREATE TABLE IF NOT EXISTS recipes (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        matched_sql TEXT NOT NULL,
-        dataset_a_pattern TEXT,
-        dataset_b_pattern TEXT,
-        match_rate DOUBLE,
-        matched_count INTEGER,
-        total_count INTEGER,
-        status TEXT DEFAULT 'active',
+        name TEXT PRIMARY KEY,
+        description TEXT,
+        match_sql TEXT NOT NULL,
+        sources TEXT NOT NULL,
         created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
         last_run_at TEXT,
+        last_match_rate DOUBLE,
         run_count INTEGER DEFAULT 0
       )
     `)
     this.initialized = true
   }
 
-  async addRecipe(params: {
-    name: string
-    matched_sql: string
-    dataset_a_pattern: string
-    dataset_b_pattern: string
-    matched_count?: number
-    total_count?: number
-  }): Promise<Recipe> {
-    await this.init()
-    const id = randomUUID()
-    const now = new Date().toISOString()
-    const matchRate = params.matched_count != null && params.total_count
-      ? params.matched_count / params.total_count
-      : null
-
-    await this.engine.execute(`
-      INSERT INTO recipes (id, name, matched_sql, dataset_a_pattern, dataset_b_pattern, match_rate, matched_count, total_count, status, created_at, updated_at, last_run_at, run_count)
-      VALUES (
-        '${esc(id)}',
-        '${esc(params.name)}',
-        '${esc(params.matched_sql)}',
-        '${esc(params.dataset_a_pattern)}',
-        '${esc(params.dataset_b_pattern)}',
-        ${matchRate ?? 'NULL'},
-        ${params.matched_count ?? 'NULL'},
-        ${params.total_count ?? 'NULL'},
-        'active',
-        '${now}',
-        '${now}',
-        NULL,
-        0
-      )
-    `)
-
+  private parseRow(row: Record<string, unknown>): Recipe {
+    let sources: RecipeSource[] = []
+    try {
+      sources = JSON.parse(String(row.sources ?? '[]')) as RecipeSource[]
+    } catch {
+      sources = []
+    }
     return {
-      id, name: params.name, matched_sql: params.matched_sql,
-      dataset_a_pattern: params.dataset_a_pattern,
-      dataset_b_pattern: params.dataset_b_pattern,
-      match_rate: matchRate, matched_count: params.matched_count ?? null,
-      total_count: params.total_count ?? null, status: 'active',
-      created_at: now, updated_at: now, last_run_at: null, run_count: 0
+      name: String(row.name),
+      description: row.description == null ? null : String(row.description),
+      match_sql: String(row.match_sql),
+      sources,
+      created_at: String(row.created_at),
+      last_run_at: row.last_run_at == null ? null : String(row.last_run_at),
+      last_match_rate:
+        row.last_match_rate == null ? null : Number(row.last_match_rate),
+      run_count: Number(row.run_count ?? 0)
     }
   }
 
-  async getRecipe(id: string): Promise<Recipe | null> {
+  async addRecipe(params: {
+    name: string
+    match_sql: string
+    sources: RecipeSource[]
+    description?: string | null
+  }): Promise<Recipe> {
     await this.init()
-    const rows = await this.engine.query(`SELECT * FROM recipes WHERE id = '${esc(id)}'`)
-    return rows.length > 0 ? (rows[0] as unknown as Recipe) : null
+    const now = new Date().toISOString()
+    const descLit = params.description == null ? 'NULL' : `'${esc(params.description)}'`
+    const sourcesJson = JSON.stringify(params.sources)
+    await this.engine.execute(`
+      INSERT INTO recipes (name, description, match_sql, sources, created_at, last_run_at, last_match_rate, run_count)
+      VALUES ('${esc(params.name)}', ${descLit}, '${esc(params.match_sql)}', '${esc(sourcesJson)}', '${now}', NULL, NULL, 0)
+    `)
+    return {
+      name: params.name,
+      description: params.description ?? null,
+      match_sql: params.match_sql,
+      sources: params.sources,
+      created_at: now,
+      last_run_at: null,
+      last_match_rate: null,
+      run_count: 0
+    }
+  }
+
+  async getRecipe(name: string): Promise<Recipe | null> {
+    await this.init()
+    const rows = (await this.engine.query(
+      `SELECT * FROM recipes WHERE name = '${esc(name)}'`
+    )) as Record<string, unknown>[]
+    return rows.length > 0 ? this.parseRow(rows[0]) : null
   }
 
   async listRecipes(): Promise<Recipe[]> {
     await this.init()
-    const rows = await this.engine.query(`SELECT * FROM recipes WHERE status = 'active' ORDER BY updated_at DESC`)
-    return rows as unknown as Recipe[]
+    const rows = (await this.engine.query(
+      `SELECT * FROM recipes ORDER BY created_at DESC`
+    )) as Record<string, unknown>[]
+    return rows.map(r => this.parseRow(r))
   }
 
-  async deleteRecipe(id: string): Promise<void> {
+  async deleteRecipe(name: string): Promise<void> {
     await this.init()
-    const now = new Date().toISOString()
-    await this.engine.execute(`UPDATE recipes SET status = 'archived', updated_at = '${now}' WHERE id = '${esc(id)}'`)
+    await this.engine.execute(`DELETE FROM recipes WHERE name = '${esc(name)}'`)
   }
 
-  async recordRun(id: string, matchRate?: number): Promise<void> {
+  async recordRun(name: string, matchRate?: number): Promise<void> {
     await this.init()
     const now = new Date().toISOString()
-    const matchRateClause = matchRate != null ? `, match_rate = ${matchRate}` : ''
-    await this.engine.execute(`UPDATE recipes SET run_count = run_count + 1, last_run_at = '${now}', updated_at = '${now}'${matchRateClause} WHERE id = '${esc(id)}'`)
+    const rateClause = matchRate != null ? `, last_match_rate = ${matchRate}` : ''
+    await this.engine.execute(
+      `UPDATE recipes SET run_count = run_count + 1, last_run_at = '${now}'${rateClause} WHERE name = '${esc(name)}'`
+    )
   }
 }

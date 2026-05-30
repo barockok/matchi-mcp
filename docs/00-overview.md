@@ -21,9 +21,9 @@ You bring the harness (Claude Code, Cline, Cursor, Continue, or any MCP-capable 
 A general-purpose SQL agent can technically do reconciliation. Use Matchi when you want any of:
 
 - **Persistent DuckDB.** The daemon keeps loaded sheets and computed match results across harness restarts, scoped to the project directory. Re-running yesterday's recon does not re-ingest a 100 MB CSV.
-- **Recon-specific tools.** `run_match` is purpose-built: it takes a `matched_sql` joining two sources aliased as `a` and `b`, derives the unmatched on both sides, exports them as CSVs into the workspace, and stores the run for later paging via `get_exceptions`.
+- **Recon-specific tools.** `run_match` is purpose-built: it takes a `matched_sql` joining two sources aliased as `a` and `b`, derives the unmatched on both sides, exports them as CSVs into the workspace, and returns a preview of up to 200 unmatched rows per side inline.
 - **Error memory.** The daemon records the agent's prior soft errors per workspace and exposes the top patterns via `recall_known_mistakes`, so the agent can avoid repeating mistakes across sessions.
-- **Structured exception paging.** `get_exceptions(match_run_id, side, page)` returns paginated unmatched rows without re-running the join.
+- **Recipes for repeat recons.** `save_recipe` / `list_recipes` / `apply_recipe` persist the match SQL + source aliases so next month is one tool call.
 - **A guided workflow.** The bundled `matchi` skill teaches the agent the recon recipe: recall → inventory → discovery → candidate match → run_match → exceptions → report.
 
 A bare SQL agent is fine for one-shot exploration. Matchi is for repeatable reconciliation work where the same datasets get revisited and the same mistakes are worth not repeating.

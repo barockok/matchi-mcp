@@ -1,6 +1,6 @@
 {
   "name": "matchi",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "AI-driven dataset reconciliation, mountable in any MCP-compatible agentic harness, backed by a local DuckDB daemon.",
   "type": "module",
   "bin": {

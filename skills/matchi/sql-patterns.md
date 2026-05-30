@@ -4,7 +4,7 @@ A cookbook of DuckDB idioms that come up repeatedly in matchi work. Each pattern
 
 ## Loading data
 
-`upload_dataset` and `load_sheet` already wrap the loaders. If you need to inspect a file before registering it, you generally can't — `run_sql` is restricted to registered tables. Load first, then explore.
+`upload_dataset` already wraps the loaders (`sheet` arg covers the XLSX-per-sheet case). If you need to inspect a file before registering it, you generally can't — `run_sql` is restricted to registered tables. Load first, then explore.
 
 If a CSV has a non-standard delimiter or decimal separator, mention it in the upload call (or pass the override via the loader). For reference, the DuckDB readers accept:
 

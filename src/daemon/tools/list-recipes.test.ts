@@ -6,16 +6,17 @@ import { WorkspaceRegistry } from '../workspace'
 import { ReconStore } from '../stores/recon-store'
 import { RecipeStore } from '../stores/recipe-store'
 import { ErrorMemoryStore } from '../stores/error-memory-store'
-import { recallKnownMistakes } from './recall-known-mistakes'
+import { listRecipes } from './list-recipes'
+import { saveRecipe } from './save-recipe'
 import type { ToolContext } from './types'
 
-describe('recall_known_mistakes', () => {
+describe('list_recipes', () => {
   let home: string
   let reg: WorkspaceRegistry
   let ctx: ToolContext
 
   beforeEach(async () => {
-    home = mkdtempSync(join(tmpdir(), 'matchi-recall-'))
+    home = mkdtempSync(join(tmpdir(), 'matchi-listrecipes-'))
     process.env.MATCHI_HOME = home
     reg = new WorkspaceRegistry({ idleTimeoutMs: 60_000 })
     const ws = await reg.touch('test00000001')
@@ -30,19 +31,26 @@ describe('recall_known_mistakes', () => {
     rmSync(home, { recursive: true, force: true })
   })
 
-  it('returns empty patterns by default', async () => {
-    const res = await recallKnownMistakes.run({}, ctx)
+  it('returns empty for fresh workspace', async () => {
+    const res = await listRecipes.run({}, ctx)
     expect(res.ok).toBe(true)
     if (!res.ok) throw new Error('unreachable')
-    expect(res.data.patterns).toEqual([])
+    expect(res.data.recipes).toEqual([])
   })
 
-  it('returns recorded errors', async () => {
-    await ctx.errorMemory.recordError('run_sql', 'SQL syntax error: foo', 'SELECT bad')
-    const res = await recallKnownMistakes.run({}, ctx)
+  it('lists saved recipes with source_aliases', async () => {
+    await saveRecipe.run({
+      name: 'r1',
+      match_sql: 'SELECT 1',
+      sources: [{ alias: 'bank', table: 'bank' }, { alias: 'gl', table: 'gl' }],
+      description: 'monthly'
+    }, ctx)
+    const res = await listRecipes.run({}, ctx)
     expect(res.ok).toBe(true)
     if (!res.ok) throw new Error('unreachable')
-    expect(res.data.patterns.length).toBe(1)
-    expect(res.data.patterns[0].tool_name).toBe('run_sql')
+    expect(res.data.recipes).toHaveLength(1)
+    expect(res.data.recipes[0].name).toBe('r1')
+    expect(res.data.recipes[0].source_aliases).toEqual(['bank', 'gl'])
+    expect(res.data.recipes[0].description).toBe('monthly')
   })
 })

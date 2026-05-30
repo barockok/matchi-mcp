@@ -65,18 +65,20 @@ manage.
 
 ## What it does
 
-Seven MCP tools:
+Eight MCP tools:
 
-- `upload_dataset` — load a local CSV or XLSX into the workspace DuckDB.
-- `list_sources` — enumerate datasets registered in the current workspace.
-- `load_sheet` — ingest a specific sheet from an XLSX file.
+- `upload_dataset` — register a CSV/XLSX/Parquet as a zero-copy DuckDB view
+  (or a materialized snapshot). Optional `sheet` arg for XLSX.
+- `list_sources` — enumerate datasets in the workspace (`is_view` flag included).
 - `run_sql` — execute DuckDB SQL (batched up to 10, row-capped at 20,
   dangerous keywords blocked).
-- `run_match` — execute a reconciliation: matched rows + derived unmatched
-  set, with progress events.
-- `get_exceptions` — paginate through unmatched rows from a given match run.
+- `run_match` — execute a reconciliation; returns matched count, unmatched
+  totals, and inline previews (≤200 rows per side).
 - `recall_known_mistakes` — top-10 error patterns the agent previously
   tripped on in this workspace.
+- `save_recipe` — persist a reusable recipe (match SQL + source aliases).
+- `list_recipes` — list saved recipes with their last-run stats.
+- `apply_recipe` — re-run a saved recipe in the current workspace.
 
 ## How it works
 

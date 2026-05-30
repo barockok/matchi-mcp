@@ -6,7 +6,6 @@ import { WorkspaceRegistry } from '../workspace'
 import { ReconStore } from '../stores/recon-store'
 import { RecipeStore } from '../stores/recipe-store'
 import { ErrorMemoryStore } from '../stores/error-memory-store'
-import { ProgressBus } from '../progress'
 import { runSql } from './run-sql'
 import type { ToolContext } from './types'
 
@@ -27,7 +26,7 @@ describe('run_sql', () => {
     for (let i = 1; i <= 25; i++) {
       await ws.data.execute(`INSERT INTO t VALUES (${i}, 'name${i}')`)
     }
-    ctx = { ws, recon, recipe, errorMemory, bus: new ProgressBus() }
+    ctx = { ws, recon, recipe, errorMemory }
   })
 
   afterEach(async () => {

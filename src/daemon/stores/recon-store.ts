@@ -1,6 +1,4 @@
 import { randomUUID } from 'crypto'
-import { appendFileSync, mkdirSync, readFileSync, existsSync } from 'fs'
-import { join } from 'path'
 import type { Engine } from '../db/engine'
 
 export interface ReconRun {
@@ -36,38 +34,12 @@ export interface MatchResult {
   unmatchedBPath?: string
 }
 
-export interface AuditEntry {
-  timestamp: string
-  action: string
-  runId?: string
-  runName?: string
-  datasetA?: string
-  datasetB?: string
-  matched?: number
-  exceptions?: number
-  matchRate?: number
-  details?: string
-}
-
-export interface ReconStoreOptions {
-  /**
-   * Directory to which audit-trail.jsonl is written. If unset, audit() / getAuditLog()
-   * are no-ops / return []. Callers (e.g. Workspace) should pass a per-workspace logs dir.
-   */
-  auditDir?: string
-}
-
 export class ReconStore {
   private runs: Map<string, ReconRun> = new Map()
   private matchResults: Map<string, MatchResult> = new Map()
   private initialized = false
-  private auditDir: string | null
-  private auditFile: string | null
 
-  constructor(private readonly engine: Engine, options: ReconStoreOptions = {}) {
-    this.auditDir = options.auditDir ?? null
-    this.auditFile = this.auditDir ? join(this.auditDir, 'audit-trail.jsonl') : null
-  }
+  constructor(private readonly engine: Engine) {}
 
   private esc(s: string): string {
     return s.replace(/'/g, "''")
@@ -197,54 +169,5 @@ export class ReconStore {
 
   getMatchResult(runId: string): MatchResult | undefined {
     return this.matchResults.get(runId)
-  }
-
-  getExceptions(
-    runId: string,
-    side: 'A' | 'B' | 'all',
-    limit: number = 20,
-    offset: number = 0
-  ): Array<Record<string, unknown>> {
-    const result = this.matchResults.get(runId)
-    if (!result) return []
-
-    let exceptions: Array<Record<string, unknown>>
-    if (side === 'A') {
-      exceptions = result.exceptionsA
-    } else if (side === 'B') {
-      exceptions = result.exceptionsB
-    } else {
-      exceptions = [
-        ...result.exceptionsA.map((r) => ({ ...r, _side: 'A' })),
-        ...result.exceptionsB.map((r) => ({ ...r, _side: 'B' }))
-      ]
-    }
-
-    return exceptions.slice(offset, offset + limit)
-  }
-
-  audit(action: string, runId?: string, details?: string): void {
-    if (!this.auditDir || !this.auditFile) return
-    mkdirSync(this.auditDir, { recursive: true })
-    const run = runId ? this.runs.get(runId) : undefined
-    const entry: AuditEntry = {
-      timestamp: new Date().toISOString(),
-      action,
-      runId,
-      runName: run?.name,
-      datasetA: run?.datasetIdA,
-      datasetB: run?.datasetIdB,
-      matched: run?.summary?.matched,
-      exceptions: run?.summary?.exceptions,
-      matchRate: run?.summary ? Math.round(run.summary.matched / Math.max(run.summary.totalA, 1) * 1000) / 10 : undefined,
-      details
-    }
-    appendFileSync(this.auditFile, JSON.stringify(entry) + '\n')
-  }
-
-  getAuditLog(limit: number = 50): AuditEntry[] {
-    if (!this.auditFile || !existsSync(this.auditFile)) return []
-    const lines = readFileSync(this.auditFile, 'utf-8').split('\n').filter(l => l.trim())
-    return lines.slice(-limit).map(l => JSON.parse(l)).reverse()
   }
 }

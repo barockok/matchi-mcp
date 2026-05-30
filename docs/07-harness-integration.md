@@ -101,7 +101,7 @@ You can have Claude Code and Cline both open in the same project directory. They
 
 This is supported, with one caveat: avoid issuing tool calls that mutate state (`upload_dataset`, `run_match`) from two harnesses *simultaneously*. The daemon serializes writes inside DuckDB, but you may see one call observe the other's partial state. In practice this means: don't run `run_match` from one harness while another is in the middle of `upload_dataset` for the same workspace.
 
-Read-only tools (`list_sources`, `run_sql`, `get_exceptions`, `recall_known_mistakes`) are safe to call concurrently from any number of harnesses.
+Read-only tools (`list_sources`, `list_recipes`, `run_sql`, `recall_known_mistakes`) are safe to call concurrently from any number of harnesses.
 
 ## Verifying integration
 
@@ -111,7 +111,7 @@ Once the harness is configured, ask its agent:
 What MCP tools do you have available?
 ```
 
-A working install lists seven tools: `recall_known_mistakes`, `upload_dataset`, `list_sources`, `load_sheet`, `run_sql`, `run_match`, `get_exceptions`. If the harness doesn't see them, run `matchi doctor` to confirm the binary is on `PATH`, then check the harness's MCP-server logs.
+A working install lists eight tools: `recall_known_mistakes`, `upload_dataset`, `list_sources`, `run_sql`, `run_match`, `save_recipe`, `list_recipes`, `apply_recipe`. If the harness doesn't see them, run `matchi doctor` to confirm the binary is on `PATH`, then check the harness's MCP-server logs.
 
 ## Env vars in harness configs
 

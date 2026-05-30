@@ -22,49 +22,57 @@ describe('RecipeStore', () => {
     rmSync(dir, { recursive: true, force: true })
   })
 
-  it('inserts and reads a recipe', async () => {
+  it('addRecipe + getRecipe round-trips name, match_sql, sources, description', async () => {
     const r = await store.addRecipe({
-      name: 'A vs B',
-      matched_sql: 'SELECT 1',
-      dataset_a_pattern: 'bank_*',
-      dataset_b_pattern: 'gl_*',
-      matched_count: 80,
-      total_count: 100,
+      name: 'bank-vs-gl',
+      match_sql: 'SELECT 1',
+      sources: [
+        { alias: 'bank', table: 'bank_aug' },
+        { alias: 'gl', table: 'gl_aug' }
+      ],
+      description: 'monthly recon'
     })
-    expect(r.id).toBeTruthy()
-    expect(r.match_rate).toBeCloseTo(0.8)
-    const fetched = await store.getRecipe(r.id)
-    expect(fetched?.name).toBe('A vs B')
-    expect(fetched?.status).toBe('active')
+    expect(r.name).toBe('bank-vs-gl')
+    expect(r.sources).toHaveLength(2)
+    const fetched = await store.getRecipe('bank-vs-gl')
+    expect(fetched?.name).toBe('bank-vs-gl')
+    expect(fetched?.description).toBe('monthly recon')
+    expect(fetched?.sources[0].alias).toBe('bank')
+    expect(fetched?.sources[0].table).toBe('bank_aug')
+    expect(fetched?.match_sql).toBe('SELECT 1')
+    expect(fetched?.run_count).toBe(0)
   })
 
-  it('listRecipes excludes archived and orders by updated_at DESC', async () => {
-    const r1 = await store.addRecipe({ name: 'first', matched_sql: 's', dataset_a_pattern: 'a', dataset_b_pattern: 'b' })
+  it('listRecipes orders by created_at DESC', async () => {
+    await store.addRecipe({ name: 'first', match_sql: 's', sources: [{ alias: 'a', table: 'x' }, { alias: 'b', table: 'y' }] })
     await new Promise(r => setTimeout(r, 5))
-    const r2 = await store.addRecipe({ name: 'second', matched_sql: 's', dataset_a_pattern: 'a', dataset_b_pattern: 'b' })
-    await store.deleteRecipe(r1.id)
+    await store.addRecipe({ name: 'second', match_sql: 's', sources: [{ alias: 'a', table: 'x' }, { alias: 'b', table: 'y' }] })
     const list = await store.listRecipes()
-    expect(list.map(r => r.id)).toEqual([r2.id])
+    expect(list.map(r => r.name)).toEqual(['second', 'first'])
   })
 
-  it('recordRun increments count and updates match_rate', async () => {
-    const r = await store.addRecipe({ name: 'x', matched_sql: 's', dataset_a_pattern: 'a', dataset_b_pattern: 'b' })
-    await store.recordRun(r.id, 0.95)
-    const updated = await store.getRecipe(r.id)
-    expect(updated?.run_count).toBe(1)
-    expect(updated?.match_rate).toBeCloseTo(0.95)
-    expect(updated?.last_run_at).toBeTruthy()
+  it('deleteRecipe removes the row', async () => {
+    await store.addRecipe({ name: 'x', match_sql: 's', sources: [{ alias: 'a', table: 'x' }, { alias: 'b', table: 'y' }] })
+    await store.deleteRecipe('x')
+    expect(await store.getRecipe('x')).toBeNull()
   })
 
-  it('escapes single quotes in name/sql', async () => {
-    const r = await store.addRecipe({
+  it('recordRun increments run_count and updates last_match_rate', async () => {
+    await store.addRecipe({ name: 'r', match_sql: 's', sources: [{ alias: 'a', table: 'x' }, { alias: 'b', table: 'y' }] })
+    await store.recordRun('r', 0.95)
+    const fetched = await store.getRecipe('r')
+    expect(fetched?.run_count).toBe(1)
+    expect(fetched?.last_match_rate).toBeCloseTo(0.95)
+    expect(fetched?.last_run_at).toBeTruthy()
+  })
+
+  it("escapes single quotes in name/sql", async () => {
+    await store.addRecipe({
       name: "it's mine",
-      matched_sql: "SELECT 'x'",
-      dataset_a_pattern: 'a',
-      dataset_b_pattern: 'b',
+      match_sql: "SELECT 'x'",
+      sources: [{ alias: 'a', table: 'x' }, { alias: 'b', table: 'y' }]
     })
-    const fetched = await store.getRecipe(r.id)
-    expect(fetched?.name).toBe("it's mine")
-    expect(fetched?.matched_sql).toBe("SELECT 'x'")
+    const fetched = await store.getRecipe("it's mine")
+    expect(fetched?.match_sql).toBe("SELECT 'x'")
   })
 })

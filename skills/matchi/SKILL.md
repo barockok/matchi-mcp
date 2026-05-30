@@ -6,13 +6,14 @@ description: Use when reconciling, matching, or analyzing two or more tabular da
 # Matchi Reconciliation Workflow
 
 Matchi tools (via the matchi MCP server):
-- `upload_dataset(path, alias?)` — load a CSV or XLSX file into the workspace DuckDB
-- `list_sources()` — list datasets registered for this workspace
-- `load_sheet(path, sheet, alias?)` — load a specific sheet from an XLSX
-- `run_sql(sql | queries[])` — read-only DuckDB SQL (20-row cap, no DDL/DML)
-- `run_match(matched_sql, a, b)` — execute the recon and persist matched + unmatched
-- `get_exceptions(match_run_id, side, page)` — page through unmatched rows
-- `recall_known_mistakes()` — top patterns you tripped on previously in this workspace
+- `upload_dataset(path, alias?, sheet?, materialize?)` — register a CSV/XLSX/Parquet file as a zero-copy DuckDB VIEW (or a materialized TABLE with `materialize: true`). Use `sheet` for a specific XLSX sheet.
+- `list_sources()` — list datasets in the workspace (each entry has `table`, `rows`, `columns`, `is_view`).
+- `run_sql(sql | queries[])` — read-only DuckDB SQL (20-row cap, no DDL/DML).
+- `run_match(matched_sql, a, b)` — execute the recon. Returns `{matched, unmatched_a_total, unmatched_b_total, unmatched_a_preview, unmatched_b_preview, match_run_id}`. Up to 200 unmatched rows per side are returned inline.
+- `recall_known_mistakes()` — top patterns you tripped on previously in this workspace.
+- `save_recipe({name, match_sql, sources, description?, overwrite?})` — persist a reusable recipe (match SQL + the two source aliases) for next month's re-run.
+- `list_recipes()` — list saved recipes with their source aliases and last-run stats.
+- `apply_recipe({name})` — re-run a saved recipe. Errors `sources_missing` if any required source alias is absent; just `upload_dataset` the missing ones first.
 
 The workspace is scoped to the current working directory. Datasets persist across sessions until garbage-collected.
 
@@ -20,9 +21,13 @@ The workspace is scoped to the current working directory. Datasets persist acros
 
 Always call `recall_known_mistakes` first. Read the returned patterns. Do not repeat them this session. If empty, that means you have no prior history here.
 
+## Step 0.5 — Check for a saved recipe
+
+Call `list_recipes()`. If a recipe matches the user's intent (same sources, same recon), `apply_recipe({name})` is the entire workflow — skip directly to Step 5 (exceptions inspection) on its result. If `apply_recipe` fails with `sources_missing`, upload the missing sources first (using the aliases the recipe expects) and retry.
+
 ## Step 1 — Inventory
 
-Call `list_sources`. If empty, ask the user for file paths and call `upload_dataset` (or `load_sheet` for xlsx with multiple sheets) for each. Pick short, lowercase, snake_case aliases — they become DuckDB table names.
+Call `list_sources`. If empty, ask the user for file paths and call `upload_dataset(path, alias)` for each (use `sheet` for a specific XLSX sheet). Pick short, lowercase, snake_case aliases — they become DuckDB table names.
 
 ## Step 2 — Discovery (mandatory)
 
@@ -63,14 +68,14 @@ See `sql-patterns.md` for tolerance windowing, fuzzy keys, multi-leg matches, an
 
 Call `run_match({matched_sql, a, b})`. Inspect:
 - `matched` count
-- `unmatched_a`, `unmatched_b` counts
+- `unmatched_a_total`, `unmatched_b_total` counts
 - match rate (matched / max(rows_a, rows_b))
 
 If match rate is below ~80%, return to discovery — your join condition is missing something the data has.
 
 ## Step 5 — Exceptions
 
-Call `get_exceptions(match_run_id, side, page)` for each side. Look at the unmatched rows. Common remediations:
+`run_match` returns up to 200 unmatched rows per side inline as `unmatched_a_preview` / `unmatched_b_preview`. Read them straight from the response. If you need to dig deeper, write targeted `run_sql` queries against the source tables. Common remediations:
 - widen amount tolerance (cents-of-cents)
 - widen date window (T+1, T+3, settlement lag)
 - fuzzy reference (LIKE pattern, regex extract, levenshtein on shorter keys)
@@ -82,6 +87,10 @@ Iterate: refine `matched_sql`, re-run, re-inspect.
 ## Step 6 — Report
 
 Summarize: total matched, unmatched per side, match rate, top exception themes, recommended next step (request more data, agree tolerance with user, accept exceptions and write off).
+
+## Step 7 — Save the recipe
+
+If the match looks good and this recon will repeat (monthly, quarterly), call `save_recipe({name, match_sql, sources: [{alias, table}, {alias, table}], description})`. Next session can then just `apply_recipe(name)` instead of re-deriving the whole match.
 
 ## When in doubt
 

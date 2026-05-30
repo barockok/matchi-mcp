@@ -57,8 +57,8 @@ cp -r ~/.matchi/ /path/to/backup/
 
 Specifically:
 
-- `data.duckdb` — necessary to re-run queries or `get_exceptions` without re-uploading.
-- `meta.duckdb` — necessary to keep the sources registry, recon-run history, and accumulated error memory.
+- `data.duckdb` — keeps the registered datasets (views over local files, plus any materialized snapshots).
+- `meta.duckdb` — recon-run history, saved recipes, and accumulated error memory.
 - `exports/` — the CSV deliverables for the unmatched sides. Treat these as the durable artifact if you only care about results, not history.
 
 You can ignore `.token` — it gets regenerated on first touch of a fresh workspace.

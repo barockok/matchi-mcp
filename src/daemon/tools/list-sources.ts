@@ -9,51 +9,50 @@ export type ListSourcesArgs = z.infer<typeof listSourcesSchema>
 
 export interface SourceInfo {
   table: string
-  alias: string | null
   rows: number
   columns: { name: string; type: string }[]
-  uploaded_at: number | null
+  is_view: boolean
 }
 
-async function ensureSourcesTable(ctx: { ws: { meta: { execute: (sql: string) => Promise<void> } } }): Promise<void> {
-  await ctx.ws.meta.execute(
-    `CREATE TABLE IF NOT EXISTS sources (name TEXT PRIMARY KEY, alias TEXT, uploaded_at BIGINT)`
-  )
+interface SourceRow {
+  table_name: string
+  table_type: string
 }
 
 export const listSources: Tool<ListSourcesArgs, { sources: SourceInfo[] }> = {
   name: 'list_sources',
   schema: listSourcesSchema,
   async run(_args, ctx) {
-    await ensureSourcesTable(ctx)
-    const registered = (await ctx.ws.meta.query(
-      `SELECT name, alias, uploaded_at FROM sources ORDER BY uploaded_at DESC`
-    )) as { name: string; alias: string | null; uploaded_at: number | bigint | null }[]
+    const rows = (await ctx.ws.data.query(
+      `SELECT table_name, table_type
+       FROM information_schema.tables
+       WHERE table_schema = 'main'
+       ORDER BY table_name`
+    )) as unknown as SourceRow[]
 
-    const sources: SourceInfo[] = []
-    for (const row of registered) {
-      const table = row.name
+    const out: SourceInfo[] = []
+    for (const r of rows) {
+      // Skip recon-internal scratch tables.
+      if (r.table_name.startsWith('_')) continue
       try {
-        const cols = (await ctx.ws.data.query(`DESCRIBE ${table}`)) as {
+        const countRows = (await ctx.ws.data.query(
+          `SELECT COUNT(*)::INT AS n FROM ${r.table_name}`
+        )) as { n: number }[]
+        const cols = (await ctx.ws.data.query(`DESCRIBE ${r.table_name}`)) as {
           column_name: string
           column_type: string
         }[]
-        const countRows = (await ctx.ws.data.query(
-          `SELECT COUNT(*)::INT AS n FROM ${table}`
-        )) as { n: number }[]
-        sources.push({
-          table,
-          alias: row.alias ?? null,
+        out.push({
+          table: r.table_name,
           rows: Number(countRows[0]?.n ?? 0),
           columns: cols.map(c => ({ name: c.column_name, type: c.column_type })),
-          uploaded_at:
-            row.uploaded_at == null ? null : typeof row.uploaded_at === 'bigint' ? Number(row.uploaded_at) : row.uploaded_at
+          is_view: r.table_type === 'VIEW'
         })
       } catch {
-        // Table missing — skip (stale registry entry)
+        // Table dropped concurrently — skip.
       }
     }
 
-    return { ok: true, data: { sources } }
+    return { ok: true, data: { sources: out } }
   }
 }

@@ -11,11 +11,12 @@ const SHIM_BIN = resolve(__dirname, '..', '..', 'bin', 'matchi.js')
 const EXPECTED_TOOLS = [
   'upload_dataset',
   'list_sources',
-  'load_sheet',
   'run_sql',
   'run_match',
-  'get_exceptions',
-  'recall_known_mistakes'
+  'recall_known_mistakes',
+  'save_recipe',
+  'list_recipes',
+  'apply_recipe'
 ] as const
 
 describe('matchi stdio shim', () => {
@@ -63,7 +64,7 @@ describe('matchi stdio shim', () => {
     rmSync(home, { recursive: true, force: true })
   }, 10_000)
 
-  it('lists all seven tools', async () => {
+  it('lists all eight tools', async () => {
     const r = await client.listTools()
     const names = r.tools.map((t) => t.name).sort()
     expect(names).toEqual([...EXPECTED_TOOLS].sort())

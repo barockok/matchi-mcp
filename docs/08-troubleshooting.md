@@ -76,7 +76,7 @@ The daemon doesn't verify the file mode at read time, so a wrong mode won't bloc
 
 If you legitimately need to mutate workspace state:
 
-- To load data, use `upload_dataset` or `load_sheet`.
+- To load data, use `upload_dataset` (pass `sheet` for a specific XLSX sheet).
 - To export, use `run_match` (which writes CSV) or the harness's file-write tools.
 - To drop a workspace's table, delete the workspace and re-upload (`rm -rf ~/.matchi/workspaces/<hash>`).
 
@@ -84,7 +84,7 @@ There is no escape hatch in the tool — by design.
 
 ## Tool returned `ingestion_failed`
 
-`upload_dataset` and `load_sheet` wrap DuckDB's `read_csv_auto` and `read_xlsx`. Common causes:
+`upload_dataset` wraps DuckDB's `read_csv_auto`, `read_xlsx`, and `read_parquet`. Common causes:
 
 - **Wrong delimiter.** `read_csv_auto` usually figures it out, but unusual delimiters (`|`, `\t` in some locales) can confuse it. Inspect with `head -5 yourfile.csv` — you'll see one line per record only if the parser agrees with the delimiter.
 - **Decimal separator.** Indonesian / European locales write `1.234.567,89`; DuckDB's default expects `.` decimal. The auto-loader does its best but sometimes guesses wrong on columns with few rows.
@@ -99,11 +99,11 @@ The error message in the response contains DuckDB's diagnostic. To override the 
 
 ## Tool returned `not_found`
 
-For `upload_dataset`/`load_sheet`: the file path doesn't exist. Check with `ls -la <path>`. Remember the daemon resolves paths relative to its *own* `cwd`, not the harness's — always pass absolute paths or paths relative to where the daemon was started (typically your harness's cwd at first MCP call).
+For `upload_dataset`: the file path doesn't exist. Check with `ls -la <path>`. Remember the daemon resolves paths relative to its *own* `cwd`, not the harness's — always pass absolute paths or paths relative to where the daemon was started (typically your harness's cwd at first MCP call).
 
 For `run_match`: the `a` or `b` table doesn't exist in the workspace. Call `list_sources` to see what's loaded.
 
-For `get_exceptions`: the `match_run_id` doesn't refer to a known run. Match results are kept in the recon store; if the daemon was restarted after the run, the in-memory match result map is empty even though the persisted run row exists. Re-run `run_match` to repopulate.
+For `apply_recipe`: `recipe_not_found` means there is no recipe with that name in the current workspace — call `list_recipes` to see what's saved. `sources_missing` means the recipe expects datasets that aren't loaded yet — upload them first under the aliases the recipe asks for.
 
 ## Tool returned `match_sql_failed`
 

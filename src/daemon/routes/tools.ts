@@ -1,5 +1,4 @@
 import type { FastifyPluginAsync } from 'fastify'
-import { randomUUID } from 'node:crypto'
 import { TOOLS } from '../tools'
 import type { MatchiServer } from '../server'
 
@@ -19,8 +18,7 @@ export const toolsRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.code(400).send({ ok: false, error: { code: 'invalid_args', message: parse.error.message } })
       }
       const stores = await f.storesFor(hash)
-      const jobId = (req.headers['x-matchi-job-id'] as string) ?? randomUUID()
-      const ctx = { ...stores, bus: f.bus, jobId }
+      const ctx = { ...stores }
       try {
         const result = await tool.run(parse.data, ctx)
         return result

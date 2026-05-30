@@ -42,44 +42,35 @@ describe('end-to-end recon through MCP shim', () => {
   }, 20_000)
 
   afterAll(async () => {
-    try {
-      await client.close()
-    } catch {
-      /* noop */
-    }
+    try { await client.close() } catch { /* noop */ }
     const dj = join(home, 'daemon.json')
     if (existsSync(dj)) {
       try {
         const info = JSON.parse(readFileSync(dj, 'utf8')) as { pid: number }
-        try {
-          process.kill(info.pid, 'SIGTERM')
-        } catch {
-          /* already gone */
-        }
-      } catch {
-        /* noop */
-      }
+        try { process.kill(info.pid, 'SIGTERM') } catch { /* gone */ }
+      } catch { /* noop */ }
     }
     await sleep(200)
     rmSync(home, { recursive: true, force: true })
   }, 10_000)
 
-  it('lists 7 tools', async () => {
+  it('lists 8 tools', async () => {
     const r = await client.listTools()
-    expect(r.tools.length).toBe(7)
+    expect(r.tools.length).toBe(8)
     const names = r.tools.map(t => t.name).sort()
     expect(names).toEqual([
-      'get_exceptions',
+      'apply_recipe',
+      'list_recipes',
       'list_sources',
-      'load_sheet',
       'recall_known_mistakes',
       'run_match',
       'run_sql',
+      'save_recipe',
       'upload_dataset'
     ])
   })
 
-  it('runs the full recon flow', async () => {
+  it('runs the full recon flow + recipe round-trip', async () => {
     // Step 0: recall known mistakes (empty)
     const r0 = parse<{ patterns: unknown[] }>(
       await client.callTool({ name: 'recall_known_mistakes', arguments: {} })
@@ -87,13 +78,15 @@ describe('end-to-end recon through MCP shim', () => {
     expect(r0.ok).toBe(true)
     expect(Array.isArray(r0.data!.patterns)).toBe(true)
 
-    // Step 1: upload datasets
-    const r1a = parse<{ table_name: string; rows: number }>(
+    // Step 1: upload datasets (zero-copy views)
+    const r1a = parse<{ table_name: string; rows: number; mode: string }>(
       await client.callTool({ name: 'upload_dataset', arguments: { path: BANK, alias: 'bank' } })
     )
     expect(r1a.ok).toBe(true)
     expect(r1a.data!.rows).toBe(10)
+    expect(r1a.data!.mode).toBe('view')
     const bankTable = r1a.data!.table_name
+    expect(bankTable).toBe('bank')
 
     const r1b = parse<{ table_name: string; rows: number }>(
       await client.callTool({ name: 'upload_dataset', arguments: { path: GL, alias: 'gl' } })
@@ -103,13 +96,14 @@ describe('end-to-end recon through MCP shim', () => {
     const glTable = r1b.data!.table_name
 
     // Step 2: list_sources reflects both
-    const r2 = parse<{ sources: Array<{ table: string }> }>(
+    const r2 = parse<{ sources: Array<{ table: string; is_view: boolean }> }>(
       await client.callTool({ name: 'list_sources', arguments: {} })
     )
     expect(r2.ok).toBe(true)
     const sourceTables = r2.data!.sources.map(s => s.table).sort()
     expect(sourceTables).toContain(bankTable)
     expect(sourceTables).toContain(glTable)
+    expect(r2.data!.sources.every(s => s.is_view)).toBe(true)
 
     // Step 3: discovery via batched run_sql
     const r3 = parse(
@@ -125,18 +119,19 @@ describe('end-to-end recon through MCP shim', () => {
     )
     expect(r3.ok).toBe(true)
 
-    // Step 4: run_match
+    // Step 4: run_match — new inline-preview shape
     const matchedSql = `
       SELECT a.id AS a_id, b.id AS b_id, a.txn_ref
       FROM ${bankTable} AS a
       JOIN ${glTable} AS b USING (txn_ref)
     `
     const r4 = parse<{
-      matchRunId: string
       matched: number
-      unmatchedA: number
-      unmatchedB: number
-      totalExceptions: number
+      unmatched_a_total: number
+      unmatched_b_total: number
+      unmatched_a_preview: unknown[]
+      unmatched_b_preview: unknown[]
+      match_run_id: string
     }>(
       await client.callTool({
         name: 'run_match',
@@ -145,32 +140,45 @@ describe('end-to-end recon through MCP shim', () => {
     )
     expect(r4.ok).toBe(true)
     expect(r4.data!.matched).toBe(7)
-    expect(r4.data!.unmatchedA).toBe(3)
-    expect(r4.data!.unmatchedB).toBe(3)
-    expect(r4.data!.totalExceptions).toBe(6)
-    const runId = r4.data!.matchRunId
-    expect(typeof runId).toBe('string')
-    expect(runId.length).toBeGreaterThan(0)
+    expect(r4.data!.unmatched_a_total).toBe(3)
+    expect(r4.data!.unmatched_b_total).toBe(3)
+    expect(r4.data!.unmatched_a_preview).toHaveLength(3)
+    expect(r4.data!.unmatched_b_preview).toHaveLength(3)
+    expect(typeof r4.data!.match_run_id).toBe('string')
 
-    // Step 5: paginate exceptions
-    const r5a = parse<{ exceptions: unknown[]; total: number; page: number; page_size: number }>(
+    // Step 5: save recipe
+    const r5 = parse<{ name: string }>(
       await client.callTool({
-        name: 'get_exceptions',
-        arguments: { match_run_id: runId, side: 'a', page: 0, page_size: 50 }
+        name: 'save_recipe',
+        arguments: {
+          name: 'bank-vs-gl',
+          match_sql: matchedSql,
+          sources: [{ alias: 'bank', table: bankTable }, { alias: 'gl', table: glTable }],
+          description: 'monthly bank/GL recon'
+        }
       })
     )
-    expect(r5a.ok).toBe(true)
-    expect(r5a.data!.exceptions.length).toBe(3)
-    expect(r5a.data!.total).toBe(3)
+    expect(r5.ok).toBe(true)
 
-    const r5b = parse<{ exceptions: unknown[]; total: number }>(
-      await client.callTool({
-        name: 'get_exceptions',
-        arguments: { match_run_id: runId, side: 'b', page: 0, page_size: 50 }
-      })
+    // Step 6: list_recipes shows it
+    const r6 = parse<{ recipes: Array<{ name: string; source_aliases: string[] }> }>(
+      await client.callTool({ name: 'list_recipes', arguments: {} })
     )
-    expect(r5b.ok).toBe(true)
-    expect(r5b.data!.exceptions.length).toBe(3)
-    expect(r5b.data!.total).toBe(3)
+    expect(r6.ok).toBe(true)
+    expect(r6.data!.recipes).toHaveLength(1)
+    expect(r6.data!.recipes[0].source_aliases).toEqual(['bank', 'gl'])
+
+    // Step 7: apply_recipe runs the same match and yields the same numbers
+    const r7 = parse<{
+      matched: number
+      unmatched_a_total: number
+      unmatched_b_total: number
+    }>(
+      await client.callTool({ name: 'apply_recipe', arguments: { name: 'bank-vs-gl' } })
+    )
+    expect(r7.ok).toBe(true)
+    expect(r7.data!.matched).toBe(7)
+    expect(r7.data!.unmatched_a_total).toBe(3)
+    expect(r7.data!.unmatched_b_total).toBe(3)
   }, 30_000)
 })

@@ -88,27 +88,18 @@ run_match({
   "b": "csv_gl_xxxxxxxx"
 })
 → {"ok": true, "data": {
-     "matchRunId": "run_...",
+     "match_run_id": "run_...",
      "matched": 217,
-     "unmatchedA": 30,
-     "unmatchedB": 34,
-     "totalExceptions": 64,
-     "unmatchedAFile": "/Users/you/.matchi/workspaces/<hash>/exports/run_.../unmatched_csv_bank_xxxxxxxx.csv",
-     "unmatchedBFile": "/Users/you/.matchi/workspaces/<hash>/exports/run_.../unmatched_csv_gl_xxxxxxxx.csv",
-     "sampleMatched": [...],
-     "sampleExceptionsA": [...],
-     "sampleExceptionsB": [...]
+     "unmatched_a_total": 30,
+     "unmatched_b_total": 34,
+     "unmatched_a_preview": [...up to 200 rows...],
+     "unmatched_b_preview": [...up to 200 rows...]
    }}
 ```
 
 Match rate is `217/247 ≈ 88%`. The skill says: if match rate is below 80% return to discovery, otherwise inspect exceptions.
 
-**Exceptions (Step 5).**
-
-```json
-get_exceptions({"match_run_id": "run_...", "side": "a", "page": 0, "page_size": 50})
-→ {"ok": true, "data": {"exceptions": [...30 rows...], "total": 30}}
-```
+**Exceptions (Step 5).** Read `unmatched_a_preview` / `unmatched_b_preview` directly from the `run_match` response — up to 200 rows per side come back inline. If you need to dig deeper than 200, write targeted `run_sql` queries against the source tables.
 
 The agent groups the unmatched by theme — say, 20 rows that look like settlement-lag (`posted_at` differs by 1-3 days), 7 with no GL counterpart, 3 with amount drift > 0.01.
 
@@ -144,7 +135,7 @@ The CSV files are the authoritative deliverable for the unmatched side — hand 
 
 - The daemon spawned automatically on the first tool call.
 - Datasets persist across Claude Code restarts. If you close Claude and come back tomorrow, `list_sources` still returns these two tables.
-- The recon run is persisted. `get_exceptions` works any time within the workspace.
+- The recon run is persisted. Save a recipe with `save_recipe(...)` so next month you can call `apply_recipe(name)` instead of re-deriving the match.
 - After 30 minutes of no activity the daemon exits cleanly. The next call respawns it. DuckDB files remain on disk.
 
 ## Next steps

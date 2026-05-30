@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { Engine } from '../db/engine'
 import { ReconStore } from './recon-store'
-import { mkdtempSync, rmSync, existsSync } from 'node:fs'
+import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -14,7 +14,7 @@ describe('ReconStore', () => {
     dir = mkdtempSync(join(tmpdir(), 'matchi-recon-'))
     engine = new Engine(join(dir, 'meta.duckdb'))
     await engine.init()
-    store = new ReconStore(engine, { auditDir: join(dir, 'logs') })
+    store = new ReconStore(engine)
     await store.init()
   })
   afterEach(async () => {
@@ -65,7 +65,7 @@ describe('ReconStore', () => {
     expect(list[0].error).toBe('boom')
   })
 
-  it('getExceptions slices match results by side', () => {
+  it('setMatchResult / getMatchResult round-trip', () => {
     const run = store.addRun({ name: 'e', datasetIdA: 'a', datasetIdB: 'b', joinKey: 'k' })
     store.setMatchResult(run.id, {
       runId: run.id,
@@ -73,26 +73,8 @@ describe('ReconStore', () => {
       exceptionsA: [{ id: 1 }, { id: 2 }],
       exceptionsB: [{ id: 3 }],
     })
-    expect(store.getExceptions(run.id, 'A')).toEqual([{ id: 1 }, { id: 2 }])
-    expect(store.getExceptions(run.id, 'B')).toEqual([{ id: 3 }])
-    const all = store.getExceptions(run.id, 'all')
-    expect(all).toHaveLength(3)
-    expect(all[0]).toMatchObject({ id: 1, _side: 'A' })
-  })
-
-  it('audit writes entries readable via getAuditLog', () => {
-    const run = store.addRun({ name: 'au', datasetIdA: 'a', datasetIdB: 'b', joinKey: 'k' })
-    store.audit('match_completed', run.id, 'details here')
-    expect(existsSync(join(dir, 'logs', 'audit-trail.jsonl'))).toBe(true)
-    const log = store.getAuditLog(10)
-    expect(log).toHaveLength(1)
-    expect(log[0].action).toBe('match_completed')
-    expect(log[0].runName).toBe('au')
-  })
-
-  it('audit is a no-op when auditDir is not configured', () => {
-    const ephemeral = new ReconStore(engine)
-    expect(() => ephemeral.audit('noop')).not.toThrow()
-    expect(ephemeral.getAuditLog()).toEqual([])
+    const m = store.getMatchResult(run.id)
+    expect(m?.exceptionsA).toHaveLength(2)
+    expect(m?.exceptionsB).toHaveLength(1)
   })
 })

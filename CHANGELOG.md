@@ -1,5 +1,28 @@
 # Changelog
 
+## v0.2.0 — 2026-05-30
+
+Tool-surface rework based on real-world feedback. Major surface change; recipes added.
+
+### Breaking
+- `upload_dataset` now defaults to a zero-copy `CREATE OR REPLACE VIEW` over `read_csv_auto` / `read_parquet` / `read_xlsx` instead of materializing a table. Pass `materialize: true` for a snapshot table. Adds `sheet?: string` (replaces `load_sheet`). Table names use the cleaned alias directly — no `csv_/xlsx_<hash>` prefix.
+- `run_match` returns the new shape `{matched, unmatched_a_total, unmatched_b_total, unmatched_a_preview, unmatched_b_preview, match_run_id}`. Unmatched rows are inline (≤200 per side); no pagination endpoint.
+- `load_sheet` tool removed (folded into `upload_dataset` via `sheet` arg).
+- `get_exceptions` tool removed (previews are inline on `run_match`).
+- Tool count: 8 (was 7). Added `save_recipe`, `list_recipes`, `apply_recipe`.
+
+### Added
+- `save_recipe({name, match_sql, sources, description?, overwrite?})` — persists a reusable recipe (match SQL + 2 source aliases) under a name.
+- `list_recipes()` — returns name, description, source_aliases, match_sql, created_at, last_run_at, last_match_rate, run_count.
+- `apply_recipe({name})` — resolves aliases against current `list_sources()`; runs the saved match. Errors `sources_missing` if aliases are absent.
+- `list_sources` now includes `is_view: boolean` and is derived from `information_schema.tables` (no more meta-DB `sources` registry).
+
+### Removed
+- `src/daemon/routes/stream.ts` (SSE), `src/daemon/routes/state.ts`, `src/daemon/progress.ts` (`ProgressBus`).
+- `ReconStore.audit()`, `getAuditLog()`, `auditDir` option, audit-trail.jsonl writes.
+- `matchi logs` CLI subcommand (daemon doesn't write a log file).
+- `meta.duckdb` `sources` registry table writes (workspace is the source of truth via DuckDB introspection).
+
 ## v0.0.1 — 2026-05-29
 
 Initial release. Pivots Matchi from a standalone Electron desktop application into a Claude Code plugin (MCP server + skill) backed by a local HTTP daemon.

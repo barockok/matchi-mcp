@@ -94,16 +94,18 @@ matchi/
 
 ## 5. MCP tool surface
 
-Six tools. Five carry forward from the Electron agent; one is new because the upload UI is gone.
+Eight tools.
 
-| Tool             | Args                                              | Returns                                     | Notes |
-|------------------|---------------------------------------------------|---------------------------------------------|-------|
-| `upload_dataset` | `path`, `alias?`, `description?`                  | `{table_name, rows, columns[]}`             | NEW. Accepts a local CSV/XLSX path. Loads into DuckDB and registers in sourceRegistry. |
-| `list_sources`   | —                                                 | `[{table, rows, columns[]}]`                | Unchanged. |
-| `load_sheet`     | `xlsx_path`, `sheet`, `alias?`                    | `{table_name}`                              | Unchanged. |
-| `run_sql`        | `sql` *or* `queries[]`, `description?`            | rows (20-row cap, danger keywords blocked)  | Batch mode (up to 10 queries) preserved. Per-query error isolation. |
-| `run_match`      | `matched_sql`, `a`, `b`, `description?`           | `{matched, unmatched_a, unmatched_b, preview}` | Streams progress via SSE. matched_sql must alias datasets `a`/`b`; unmatched derived via `rowid NOT IN`. |
-| `get_exceptions` | `side` (`a`\|`b`), `page`, `page_size?`           | paginated rows                              | Unchanged. |
+| Tool                    | Args                                                                    | Returns                                                                                    | Notes |
+|-------------------------|-------------------------------------------------------------------------|--------------------------------------------------------------------------------------------|-------|
+| `upload_dataset`        | `path`, `alias?`, `sheet?`, `materialize?`, `description?`              | `{table_name, rows, columns[], mode}`                                                      | Zero-copy `CREATE VIEW` by default; `materialize:true` for a snapshot table. `sheet` for XLSX. |
+| `list_sources`          | —                                                                       | `[{table, rows, columns[], is_view}]`                                                      | Derived from `information_schema.tables`. |
+| `run_sql`               | `sql` *or* `queries[]`, `description?`                                  | rows (20-row cap, danger keywords blocked)                                                 | Batch mode (up to 10 queries) preserved. Per-query error isolation. |
+| `run_match`             | `matched_sql`, `a`, `b`, `description?`                                 | `{matched, unmatched_a_total, unmatched_b_total, unmatched_a_preview, unmatched_b_preview, match_run_id}` | Inline previews ≤200 rows/side. matched_sql must alias datasets `a`/`b`. |
+| `recall_known_mistakes` | —                                                                       | `{patterns: [...]}`                                                                        | Top-10 prior errors in this workspace. |
+| `save_recipe`           | `name`, `match_sql`, `sources[2]`, `description?`, `overwrite?`         | `{name}`                                                                                   | Persists recipe; `recipe_exists` if name taken and not overwriting. |
+| `list_recipes`          | —                                                                       | `{recipes: [...]}`                                                                         | Lists saved recipes with last-run stats. |
+| `apply_recipe`          | `name`                                                                  | same shape as `run_match`                                                                  | `sources_missing` if any source alias absent. |
 
 **Dropped from the Electron build:**
 - Provider management, settings, API keys (harness owns the model).
@@ -112,7 +114,7 @@ Six tools. Five carry forward from the Electron agent; one is new because the up
 
 Every tool receives an implicit `workspace_hash` from the shim. The shim computes `sha1(cwd).slice(0, 12)` itself (deterministic; both sides agree) and uses it as the path segment when calling the daemon. The agent never sees or supplies it.
 
-A seventh tool, **`recall_known_mistakes`** (`{}` → `[{tool, category, count, last_seen, hint}]`), exposes the error-memory store so the agent can prime itself at session start. The skill instructs the agent to call it once before the first `run_sql`.
+The skill instructs the agent to call `recall_known_mistakes` once at session start (before the first `run_sql`), and to check `list_recipes` for a saved recipe that fits before deriving anything new.
 
 ## 6. Daemon HTTP API
 

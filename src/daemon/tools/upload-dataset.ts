@@ -1,12 +1,15 @@
 import { z } from 'zod'
 import { existsSync } from 'node:fs'
 import { extname, basename } from 'node:path'
-import { workspaceHash } from '../../shared/hash'
 import type { Tool } from './types'
+
+const ALLOWED_EXT = new Set(['.csv', '.xlsx', '.parquet'])
 
 export const uploadDatasetSchema = z.object({
   path: z.string(),
   alias: z.string().optional(),
+  sheet: z.string().optional(),
+  materialize: z.boolean().optional(),
   description: z.string().optional()
 })
 
@@ -16,37 +19,43 @@ export interface UploadDatasetData {
   table_name: string
   rows: number
   columns: { name: string; type: string }[]
+  mode: 'view' | 'table'
 }
 
 export const uploadDataset: Tool<UploadDatasetArgs, UploadDatasetData> = {
   name: 'upload_dataset',
   schema: uploadDatasetSchema,
-  async run({ path, alias }, ctx) {
+  async run({ path, alias, sheet, materialize }, ctx) {
     if (!existsSync(path)) {
       return { ok: false, error: { code: 'not_found', message: `file ${path} does not exist` } }
     }
     const ext = extname(path).toLowerCase()
-    if (ext !== '.csv' && ext !== '.xlsx') {
+    if (!ALLOWED_EXT.has(ext)) {
       return {
         ok: false,
-        error: { code: 'unsupported_format', message: `expected .csv or .xlsx, got ${ext}` }
+        error: { code: 'unsupported_format', message: `expected .csv/.xlsx/.parquet, got ${ext}` }
       }
     }
+    if (sheet && ext !== '.xlsx') {
+      return { ok: false, error: { code: 'sheet_unsupported', message: 'sheet arg only valid for .xlsx' } }
+    }
     const baseName = (alias ?? basename(path, ext)).replace(/[^a-zA-Z0-9_]/g, '_').toLowerCase()
-    const table = `${ext === '.csv' ? 'csv' : 'xlsx'}_${baseName}_${workspaceHash(path).slice(0, 8)}`
-    const escaped = path.replace(/'/g, "''")
+    // XLSX is expensive to parse repeatedly — default to materialize unless caller says false.
+    const shouldMaterialize = materialize ?? (ext === '.xlsx')
+    const object = shouldMaterialize ? 'TABLE' : 'VIEW'
+    const escapedPath = path.replace(/'/g, "''")
+    const reader =
+      ext === '.csv'
+        ? `read_csv_auto('${escapedPath}')`
+        : ext === '.parquet'
+          ? `read_parquet('${escapedPath}')`
+          : `read_xlsx('${escapedPath}'${sheet ? `, sheet='${sheet.replace(/'/g, "''")}'` : ''})`
 
     try {
-      if (ext === '.csv') {
-        await ctx.ws.data.execute(
-          `CREATE OR REPLACE TABLE ${table} AS SELECT * FROM read_csv_auto('${escaped}')`
-        )
-      } else {
+      if (ext === '.xlsx') {
         await ctx.ws.data.execute(`INSTALL excel; LOAD excel;`)
-        await ctx.ws.data.execute(
-          `CREATE OR REPLACE TABLE ${table} AS SELECT * FROM read_xlsx('${escaped}')`
-        )
       }
+      await ctx.ws.data.execute(`CREATE OR REPLACE ${object} ${baseName} AS SELECT * FROM ${reader}`)
     } catch (e) {
       return {
         ok: false,
@@ -54,26 +63,19 @@ export const uploadDataset: Tool<UploadDatasetArgs, UploadDatasetData> = {
       }
     }
 
-    const countRows = (await ctx.ws.data.query(`SELECT COUNT(*)::INT AS n FROM ${table}`)) as { n: number }[]
-    const cols = (await ctx.ws.data.query(`DESCRIBE ${table}`)) as {
+    const countRows = (await ctx.ws.data.query(`SELECT COUNT(*)::INT AS n FROM ${baseName}`)) as { n: number }[]
+    const cols = (await ctx.ws.data.query(`DESCRIBE ${baseName}`)) as {
       column_name: string
       column_type: string
     }[]
 
-    await ctx.ws.meta.execute(
-      `CREATE TABLE IF NOT EXISTS sources (name TEXT PRIMARY KEY, alias TEXT, uploaded_at BIGINT)`
-    )
-    const aliasLiteral = alias ? `'${alias.replace(/'/g, "''")}'` : 'NULL'
-    await ctx.ws.meta.execute(
-      `INSERT OR REPLACE INTO sources VALUES ('${table}', ${aliasLiteral}, ${Date.now()})`
-    )
-
     return {
       ok: true,
       data: {
-        table_name: table,
+        table_name: baseName,
         rows: Number(countRows[0]?.n ?? 0),
-        columns: cols.map(c => ({ name: c.column_name, type: c.column_type }))
+        columns: cols.map(c => ({ name: c.column_name, type: c.column_type })),
+        mode: object.toLowerCase() as 'view' | 'table'
       }
     }
   }

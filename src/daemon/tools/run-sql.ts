@@ -153,14 +153,6 @@ export const runSql: Tool<RunSqlArgs, RunSqlData> = {
         const countOnly = Boolean(q.count_only)
         const desc = q.description && q.description.length > 200 ? q.description.slice(0, 200) : q.description || null
 
-        if (ctx.jobId) {
-          ctx.bus.emitProgress(ctx.jobId, 'query', {
-            index: i + 1,
-            total: queries.length,
-            description: desc
-          })
-        }
-
         const queryResult = await executeSingleQuery(ctx, q.sql, limit, countOnly)
         const batchResult: BatchQueryResult = queryResult.ok
           ? {

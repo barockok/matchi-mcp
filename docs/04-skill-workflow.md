@@ -4,16 +4,18 @@ This page is the human-readable explanation of the bundled `matchi` skill. The s
 
 If you're a user, this page tells you what the agent *should* be doing and why — so you can spot when it's gone off the rails. If you're a contributor, it tells you why the skill is structured the way it is.
 
-## The six-step recipe
+## The recipe-aware workflow
 
 ```
-Step 0  recall_known_mistakes      → prime the agent with prior errors
-Step 1  list_sources / upload      → know what's loaded
-Step 2  run_sql probes (mandatory) → profile each table
-Step 3  candidate matched_sql      → write the join
-Step 4  run_match                  → execute and persist
-Step 5  get_exceptions             → triage the unmatched
-Step 6  report                     → summarize for the user
+Step 0    recall_known_mistakes      → prime the agent with prior errors
+Step 0.5  list_recipes               → if a saved recipe fits, apply_recipe and skip to Step 5
+Step 1    list_sources / upload      → know what's loaded
+Step 2    run_sql probes (mandatory) → profile each table
+Step 3    candidate matched_sql      → write the join
+Step 4    run_match                  → execute, returns inline previews
+Step 5    inspect unmatched_*_preview → triage the unmatched (≤200/side inline)
+Step 6    report                     → summarize for the user
+Step 7    save_recipe (if repeating) → next month is one tool call
 ```
 
 Each step gates the next. Skipping discovery is the single biggest source of bad reconciliations.
@@ -26,9 +28,9 @@ Why it matters: this is the only mechanism Matchi has for the agent to *learn* f
 
 ## Step 1 — Inventory
 
-`list_sources()` returns everything currently registered in this workspace. If empty, the agent asks the user for paths and calls `upload_dataset` (for CSV or first-sheet XLSX) or `load_sheet` (for a specific XLSX sheet).
+`list_sources()` returns everything currently registered in this workspace. If empty, the agent asks the user for paths and calls `upload_dataset(path, alias)`. For a specific XLSX sheet, pass `sheet`. For a snapshot table instead of a zero-copy view, pass `materialize: true`.
 
-Aliases should be short, lowercase, snake_case. They get prefixed with `csv_` or `xlsx_` and suffixed with an 8-character path hash to form the DuckDB table name. That hash is what makes uploading the same file twice idempotent — same path, same hash, same table.
+Aliases should be short, lowercase, snake_case — they become the DuckDB table/view names directly. `CREATE OR REPLACE` makes re-uploading the same alias idempotent.
 
 ## Step 2 — Discovery (mandatory)
 
@@ -77,14 +79,15 @@ The full pattern library — tolerance windowing, fuzzy keys, multi-leg matches,
 Returned numbers to inspect:
 
 - `matched` — the count of joined rows
-- `unmatchedA`, `unmatchedB`
+- `unmatched_a_total`, `unmatched_b_total`
+- `unmatched_a_preview`, `unmatched_b_preview` — up to 200 rows per side, inline
 - match rate = `matched / max(totalA, totalB)`
 
 The skill's guideline: **if match rate is below ~80%, return to discovery**. Your join is missing something the data has — usually a normalization or a tolerance you haven't accounted for. The targets per domain are in [`skills/matchi/workflow.md`](../skills/matchi/workflow.md) §10.
 
 ## Step 5 — Exceptions
 
-`get_exceptions(match_run_id, side, page, page_size)` pages through the unmatched rows. The agent reads them, groups by theme, and proposes remediations:
+The agent reads `unmatched_a_preview` / `unmatched_b_preview` from the `run_match` response (up to 200 rows per side, inline). It groups by theme and proposes remediations:
 
 - widen amount tolerance (FX rounding, WHT/PPh 23, bank fees)
 - widen date window (T+1, T+3, settlement lag, cheque clearing)

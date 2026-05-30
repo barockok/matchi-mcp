@@ -6,7 +6,6 @@ import { WorkspaceRegistry } from '../workspace'
 import { ReconStore } from '../stores/recon-store'
 import { RecipeStore } from '../stores/recipe-store'
 import { ErrorMemoryStore } from '../stores/error-memory-store'
-import { ProgressBus } from '../progress'
 import { runMatch } from './run-match'
 import { uploadDataset } from './upload-dataset'
 import type { ToolContext } from './types'
@@ -26,7 +25,7 @@ describe('run_match', () => {
     const recon = new ReconStore(ws.meta); await recon.init()
     const recipe = new RecipeStore(ws.meta); await recipe.init()
     const errorMemory = new ErrorMemoryStore(ws.meta); await errorMemory.init()
-    ctx = { ws, recon, recipe, errorMemory, bus: new ProgressBus() }
+    ctx = { ws, recon, recipe, errorMemory }
 
     const aPath = join(home, 'a.csv')
     const bPath = join(home, 'b.csv')
@@ -56,10 +55,11 @@ describe('run_match', () => {
     expect(res.ok).toBe(true)
     if (!res.ok) throw new Error('unreachable')
     expect(res.data.matched).toBe(3)
-    expect(res.data.unmatchedA).toBe(1)
-    expect(res.data.unmatchedB).toBe(1)
-    expect(res.data.totalExceptions).toBe(2)
-    expect(res.data.matchRunId).toBeTruthy()
+    expect(res.data.unmatched_a_total).toBe(1)
+    expect(res.data.unmatched_b_total).toBe(1)
+    expect(res.data.unmatched_a_preview).toHaveLength(1)
+    expect(res.data.unmatched_b_preview).toHaveLength(1)
+    expect(res.data.match_run_id).toBeTruthy()
   })
 
   it('returns not_found for missing dataset', async () => {
