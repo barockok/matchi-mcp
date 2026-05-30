@@ -1,11 +1,11 @@
 {
   "name": "matchi",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "AI-driven dataset reconciliation, mountable in any MCP-compatible agentic harness.",
   "mcpServers": {
     "matchi": {
-      "command": "matchi",
-      "args": []
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/bin/matchi.js"]
     }
   },
   "skills": ["./skills/matchi"]

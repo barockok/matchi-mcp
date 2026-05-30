@@ -48,3 +48,11 @@ Rename `matchi-mcp` → `matchi` across the entire surface.
 - Install URLs updated to the new package + repo names.
 
 **Breaking:** harness MCP configs that reference `"command": "matchi-mcp"` must update to `"command": "matchi"`. Reinstall: `npm install -g matchi` (or `npm install -g github:barockok/matchi`).
+
+## v0.1.1 — 2026-05-30
+
+Fix plugin install (issue #1).
+
+- `.claude-plugin/plugin.json` now uses `command: "node"` with `args: ["${CLAUDE_PLUGIN_ROOT}/bin/matchi.js"]` so the MCP server resolves from the plugin install dir instead of relying on `matchi` being on `PATH`.
+- Commit built `dist/` artifacts. Claude Code's plugin installer copies repo contents as-is without running `npm install`, so the dynamic imports in `bin/matchi.js` (`../dist/mcp/server.js`, `../dist/cli/index.js`) need `dist/` to exist in-repo.
+- `.gitignore`: stop ignoring `dist`.

@@ -6,7 +6,7 @@
       "name": "matchi",
       "source": { "source": "github", "repo": "barockok/matchi" },
       "description": "AI-driven dataset reconciliation, mountable in any MCP-compatible agentic harness.",
-      "version": "0.1.0"
+      "version": "0.1.1"
     }
   ]
 }
